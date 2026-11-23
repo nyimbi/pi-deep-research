@@ -172,6 +172,26 @@ pie, xychart-beta and the other standard types). Rules, enforced by `research_fi
 - A `pie` or `xychart-beta` chart must plot figures that appear in a table in the report: put the table first, cite its rows, then chart it. Each plotted label and value must be in one row.
 - A purely structural diagram needs no source. Put the caption and a cited sentence beside it.
 
+### Comparing options
+
+Draw the difference, not two separate boxes. Put each option in its own subgraph with the same
+endpoints, and style the edges that one option adds so the reader can point at what they are choosing
+between. Edge numbers in `linkStyle` count in the order the edges are written, starting at 0.
+
+```mermaid
+flowchart LR
+  subgraph A["Option A: direct writes"]
+    a1[Client] -->|writes| a2[(Primary store)]
+  end
+  subgraph B["Option B: queued writes"]
+    b1[Client] -->|enqueues| b2[Queue]
+    b2 -->|drains in order| b3[(Primary store)]
+  end
+  linkStyle 1,2 stroke:#d33,stroke-width:3px
+```
+
+Option B adds a queue between the client and the store, which buys ordering and costs a hop of delay.
+
 ## Writing Quality Anti-Patterns
 
 These are the patterns that make reports feel shallow. Avoid them:

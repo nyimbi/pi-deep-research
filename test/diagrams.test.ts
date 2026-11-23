@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { checkDiagrams, mermaidBlocks } from "../src/diagrams.ts";
+import { checkDiagrams, lintDiagrams, mermaidBlocks } from "../src/diagrams.ts";
 import { SourceLedger } from "../src/ledger.ts";
 
 const ledger = () => {
@@ -70,5 +70,40 @@ describe("checkDiagrams", () => {
 			const swapped = fence('pie title S\n  "Alpha" : 54.5\n  "Beta" : 45.5') + table;
 			assert.equal(checkDiagrams(swapped, ledger()).length, 2);
 		});
+	});
+});
+
+describe("lintDiagrams", () => {
+	const cap = "The pipeline moves each request through three stages in order.";
+	const body = (b: string, c = cap) => `Text.\n\n${c}\n\n\`\`\`mermaid\n${b}\n\`\`\`\n`;
+	it("is quiet for a captioned diagram with labelled arrows", () => {
+		assert.deepEqual(lintDiagrams(body("flowchart LR\n  A -->|reads| B\n  B -->|writes| C")), []);
+	});
+	it("flags a missing caption, and accepts a caption after the block", () => {
+		assert.match(lintDiagrams("Hi.\n\n```mermaid\nflowchart LR\n  A -->|x| B\n```\n\n## Next\n")[0], /no caption/);
+		assert.deepEqual(lintDiagrams("Hi.\n\n```mermaid\nflowchart LR\n  A -->|x| B\n```\n\nRequests flow from A to B here.\n"), []);
+	});
+	it("flags a flowchart where most arrows are unlabelled, counting the three label spellings as labelled", () => {
+		assert.match(lintDiagrams(body("flowchart LR\n  A --> B --> C\n  C --> D"))[0], /labels 0 of 3 arrows/);
+		assert.match(lintDiagrams(body("flowchart LR\n  A -.-> B\n  B ==> C\n  C -. x .-> D\n  D -.-> E"))[0], /labels 1 of 4 arrows/);
+		for (const spelling of ["A -- reads --> B\n  B -- writes --> C", "A ==>|reads| B\n  B ==>|writes| C", "A -. polls .-> B\n  B -. reads .-> C", "A == reads ==> B\n  B == writes ==> C", "A -->|reads| B\n  B ---|joins| C"]) {
+			assert.deepEqual(lintDiagrams(body(`flowchart LR\n  ${spelling}`)), [], spelling);
+		}
+	});
+	it("flags a sequence message with no text and a Comparison section with no diagram", () => {
+		assert.match(lintDiagrams(body("sequenceDiagram\n  A->>B: hello\n  B->>A"))[0], /1 message\(s\) with no text/);
+		assert.match(lintDiagrams("# R\n\n## Comparison\n\nA vs B.\n")[0], /Comparison section has no diagram/);
+	});
+});
+
+
+describe("template examples", () => {
+	it("every Mermaid block in the report template passes the structural check and the lint", async () => {
+		const { readFile } = await import("node:fs/promises");
+		const template = await readFile(new URL("../references/report-template.md", import.meta.url), "utf8");
+		const blocks = mermaidBlocks(template);
+		assert.ok(blocks.length >= 1, "the template carries at least one example");
+		assert.deepEqual(checkDiagrams(template, ledger()), []);
+		assert.deepEqual(lintDiagrams(template.replace(/## Comparison[^\n]*/g, "## Comparisons")), []);
 	});
 });

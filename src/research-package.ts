@@ -12,7 +12,7 @@ import type { EntailmentReport } from "./entailment.ts";
 import { checkReportAgainstNotes, loadNotes } from "./notes.ts";
 import { CONFIDENCE_CAP, gradeFindings, type FindingGrade, type Grade } from "./grade.ts";
 import { checkClaims, describeClaimIssues } from "./claim-check.ts";
-import { checkDiagrams, mermaidBlocks } from "./diagrams.ts";
+import { checkDiagrams, lintDiagrams, mermaidBlocks } from "./diagrams.ts";
 import { evidenceGraph } from "./evidence-graph.ts";
 import type { DiagramRenderer } from "./diagram-render.ts";
 import type { DocsQaRunner } from "./docs-qa.ts";
@@ -273,6 +273,7 @@ export async function writeResearchPackage(options: FinalizeOptions): Promise<Fi
 	if (options.strict !== false) errors.push(...claimIssues);
 	else warnings.push(...claimIssues);
 
+	warnings.push(...lintDiagrams(report));
 	const diagramIssues = checkDiagrams(report, options.ledger);
 	if (options.strict !== false) errors.push(...diagramIssues);
 	else warnings.push(...diagramIssues);

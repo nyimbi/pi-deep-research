@@ -83,6 +83,12 @@ when rendering is on): one node per cited finding, one per registrable domain, a
 source's tier and whether it was read. It is generated from the ledger, never typed, and it is not appended
 to the report, so the README stays the text the author wrote.
 
+**Lint (warnings only).** `lintDiagrams` warns when a diagram has no caption sentence of five words or more
+directly before or after it, when most flowchart arrows carry no label (`-->|text|`, `-- text -->`,
+`==>|text|` and `-. text .->` all count), when a sequence message has no text, and when a `## Comparison`
+section has no diagram. These are style, so they never fail a strict run. The template's comparison
+skeleton (before and after, the added edges styled) is tested to stay valid.
+
 **Render check.** With `diagrams.render` (or `DIAGRAM_RENDER=on`) finalize also renders each block with
 `mmdc` (`src/diagram-render.ts`). A parse error fails a strict run with mmdc's own message, and each good
 block ships as `diagrams/diagram-N.mmd` and `.svg` in the package, so the report reads without a Mermaid

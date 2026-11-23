@@ -15,13 +15,16 @@ const TYPES = [
 export interface DiagramBlock {
 	index: number;
 	source: string;
+	/** Offsets of the whole fenced block in the report. */
+	start: number;
+	end: number;
 }
 
 export function mermaidBlocks(report: string): DiagramBlock[] {
 	const blocks: DiagramBlock[] = [];
 	const re = /^[ \t]*```mermaid[^\n]*\n([\s\S]*?)^[ \t]*```[ \t]*$/gm;
 	let m: RegExpExecArray | null;
-	while ((m = re.exec(report))) blocks.push({ index: blocks.length + 1, source: m[1] });
+	while ((m = re.exec(report))) blocks.push({ index: blocks.length + 1, source: m[1], start: m.index, end: m.index + m[0].length });
 	return blocks;
 }
 
@@ -124,5 +127,43 @@ export function checkDiagrams(report: string, ledger: SourceLedger): string[] {
 		const issues = checkClaims(`- ${labels} ${known.join(" ")}`, (url) => ledger.source(url)?.extracted?.content);
 		for (const line of describeClaimIssues(issues)) out.push(`${label}: ${line}`);
 	}
+	return out;
+}
+
+const EDGE = /-\.->|\.->|==>|-->|---|--[ox]/g;
+const LABELED = /(?:-->|---|==>|-\.->)\s*\|[^|]+\||--\s+[^-|>\s][^-|>]*?\s+-->|==\s+[^=|>\s][^=|>]*?\s+==>|-\.\s+[^-.|>\s][^|>]*?\s+\.->/g;
+const NOT_EDGE_LINE = /^(?:subgraph|end\b|style|classDef|class|click|linkStyle|direction|%%)/;
+
+function proseLine(line: string | undefined): boolean {
+	if (!line) return false;
+	const text = line.trim();
+	return !/^(?:#|```|\||<!--)/.test(text) && text.split(/\s+/).length >= 5;
+}
+
+/** Style findings, always warnings: a caption beside each diagram and labelled arrows. */
+export function lintDiagrams(report: string): string[] {
+	const out: string[] = [];
+	for (const block of mermaidBlocks(report)) {
+		const label = `diagram ${block.index}`;
+		const before = report.slice(0, block.start).split("\n").map((l) => l.trim()).filter(Boolean).at(-1);
+		const after = report.slice(block.end).split("\n").map((l) => l.trim()).find(Boolean);
+		if (!proseLine(before) && !proseLine(after)) out.push(`${label} has no caption: put a sentence of five words or more, saying what the picture shows, directly before or after it`);
+		const lines = block.source.split("\n").map((l) => l.trim());
+		const kind = lines.find((l) => l && !l.startsWith("%%"))?.split(/[\s;]/)[0];
+		if (kind === "flowchart" || kind === "graph") {
+			let edges = 0;
+			let labeled = 0;
+			for (const line of lines) {
+				if (!line || NOT_EDGE_LINE.test(line)) continue;
+				edges += (line.match(EDGE) ?? []).length;
+				labeled += (line.match(LABELED) ?? []).length;
+			}
+			if (edges >= 2 && labeled * 2 < edges) out.push(`${label} labels ${labeled} of ${edges} arrows; an unlabelled arrow says only "related"`);
+		} else if (kind === "sequenceDiagram") {
+			const bare = lines.filter((l) => /^[^%]*?(?:->>|-->>|->|-->|-x|--x|-\)|--\))/.test(l) && !/^(?:participant|actor|note|loop|alt|opt|par|rect|autonumber|activate|deactivate)\b/i.test(l) && !l.includes(":"));
+			if (bare.length) out.push(`${label} has ${bare.length} message(s) with no text`);
+		}
+	}
+	if (/^##\s+Comparison\b/im.test(report) && !mermaidBlocks(report).length) out.push("the Comparison section has no diagram; a before and after drawing shows what each option adds or removes");
 	return out;
 }
