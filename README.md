@@ -150,6 +150,18 @@ no-repeat logit processor is a serialized Python object; produce it with
 repetition guard is off. The community MLX port is v1 only and has no server, so
 it is not supported here.
 
+### Context budget and `source_read`
+
+`web_extract` returns the first 1,500 words of each page inline (`context.inline_words`)
+and keeps the full text in the evidence ledger. The `source_read` tool reads
+the rest without re-fetching: pass `query` for the best-matching passages
+(TF-IDF over ~350-word chunks, returned in document order), or `start` to read
+passages in order. Fifteen sources no longer need fifteen full pages in context.
+
+```json
+{ "context": { "inline_words": 1500, "chunk_words": 350 } }
+```
+
 ## Evidence ledger and finalize
 
 The extension keeps a per-session ledger of every search result and extraction:

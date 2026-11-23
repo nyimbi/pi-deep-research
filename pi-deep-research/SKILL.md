@@ -19,6 +19,7 @@ Uses `web_search` and `web_extract` tools registered by this package's extension
 **Available tools:**
 - `web_search` — Web and academic search. Provider chain: SearXNG, Ollama, Tavily, Brave, agent-reach, arXiv, Semantic Scholar, OpenAlex, Crossref, Europe PMC. Supports batch queries, domain filters, freshness, `sources: "academic"`, and `mode: "merge"`.
 - `web_extract` — Full page text, one URL or up to five. Untrusted content is wrapped in `<untrusted_source>`.
+- `source_read` — Passages from a page already extracted. `web_extract` shows only the first part of long pages; use `query` to pull the relevant passages instead of re-extracting.
 - `research_checkpoint` — The hard gate. Source counts come from the evidence ledger, not from your message.
 - `research_finalize` — Writes `docs/research/<slug>/`, archives sources with SHA-256, validates citations, and fails on invented URLs.
 

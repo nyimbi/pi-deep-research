@@ -38,6 +38,12 @@ export interface OllamaSettings {
 	port: string;
 }
 
+export interface ContextSettings {
+	/** Words of each extracted page returned inline; the rest is read with source_read. */
+	inlineWords: number;
+	chunkWords: number;
+}
+
 export interface UocrSettings {
 	/** Base URL of the SGLang server; empty disables the provider. */
 	baseUrl: string;
@@ -79,6 +85,7 @@ export interface ResearchSettings {
 	searxng: SearxngSettings;
 	ollama: OllamaSettings;
 	uocr: UocrSettings;
+	context: ContextSettings;
 	archiveRoot: string;
 	archiveMaxBytes: number;
 	safety: SafetySettings;
@@ -115,6 +122,7 @@ export const DEFAULT_SETTINGS: ResearchSettings = {
 		ngramSize: 35,
 		windowSize: 1024,
 	},
+	context: { inlineWords: 1500, chunkWords: 350 },
 	archiveRoot: join("docs", "research"),
 	archiveMaxBytes: 5 * 1024 * 1024,
 	safety: {
@@ -198,6 +206,7 @@ export async function loadSettings(options: LoadSettingsOptions = {}): Promise<R
 	const searxngRaw = object(raw.searxng, "searxng");
 	const ollamaRaw = object(raw.ollama, "ollama");
 	const uocrRaw = object(raw.unlimited_ocr, "unlimited_ocr");
+	const contextRaw = object(raw.context, "context");
 	const safetyRaw = object(raw.safety, "safety");
 	const budgetRaw = object(raw.budget, "budget");
 	const archiveRaw = object(raw.archive, "archive");
@@ -260,6 +269,10 @@ export async function loadSettings(options: LoadSettingsOptions = {}): Promise<R
 			logitProcessor: text(uocrRaw.logit_processor, DEFAULT_SETTINGS.uocr.logitProcessor, "unlimited_ocr.logit_processor"),
 			ngramSize: number(uocrRaw.ngram_size, DEFAULT_SETTINGS.uocr.ngramSize, "unlimited_ocr.ngram_size", 1),
 			windowSize: number(uocrRaw.window_size, DEFAULT_SETTINGS.uocr.windowSize, "unlimited_ocr.window_size", 1),
+		},
+		context: {
+			inlineWords: number(contextRaw.inline_words, DEFAULT_SETTINGS.context.inlineWords, "context.inline_words", 50),
+			chunkWords: number(contextRaw.chunk_words, DEFAULT_SETTINGS.context.chunkWords, "context.chunk_words", 50),
 		},
 		archiveRoot: expandHome(text(archiveRaw.root, DEFAULT_SETTINGS.archiveRoot, "archive.root")),
 		archiveMaxBytes: number(archiveRaw.max_bytes, DEFAULT_SETTINGS.archiveMaxBytes, "archive.max_bytes", 1024),
