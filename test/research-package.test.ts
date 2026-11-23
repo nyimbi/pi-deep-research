@@ -187,6 +187,11 @@ describe("writeResearchPackage", () => {
 		assert.ok(!svg.includes("mmdc"), "the editorial drawing replaces Mermaid's");
 		assert.match(await readFile(join(root, "docs/research/ed-ok/diagrams/diagram-1.html"), "utf8"), /Diagram Design/);
 		assert.ok(ok.warnings.includes("gate saw diagram-1.html"), "the skill's gates run on the written page");
+		assert.ok(ok.warnings.includes("gate saw diagram-1.dark.html"), "and on the dark page");
+		const dark = await readFile(join(root, "docs/research/ed-ok/diagrams/diagram-1.dark.svg"), "utf8");
+		assert.match(dark, /fill="#2d3142"/);
+		assert.match(await readFile(join(root, "docs/research/ed-ok/diagrams/diagram-1.dark.html"), "utf8"), /background: #2d3142/);
+		assert.match(await readFile(join(root, "docs/research/ed-ok/README.rendered.md"), "utf8"), /<source media="\(prefers-color-scheme: dark\)" srcset="diagrams\/diagram-1\.dark\.svg">/);
 		const fallback = await run("ed-hard", hard);
 		assert.match(await readFile(join(root, "docs/research/ed-hard/diagrams/diagram-1.svg"), "utf8"), /id="mmdc"/);
 		assert.ok(fallback.warnings.some((w) => /diagram 1 is drawn by Mermaid, not in the editorial style: not a diagram/.test(w)));

@@ -90,6 +90,9 @@ describe("diagram style settings", () => {
 		const c = (await loadSettings({ env: {}, readFileImpl: async () => JSON.stringify({ diagrams: { style: "mermaid", design_skill_dir: "/opt/dd" } }) })).diagrams;
 		assert.equal(c.style, "mermaid");
 		assert.equal(c.designSkillDir, "/opt/dd");
+		assert.equal(d.dark, true);
+		assert.equal((await loadSettings({ env: {}, readFileImpl: async () => JSON.stringify({ diagrams: { dark: false } }) })).diagrams.dark, false);
+		await assert.rejects(loadSettings({ env: {}, readFileImpl: async () => JSON.stringify({ diagrams: { dark: "yes" } }) }), /diagrams\.dark/);
 		assert.equal((await loadSettings({ env: { DIAGRAM_STYLE: "mermaid" }, readFileImpl: async () => "{}" })).diagrams.style, "mermaid");
 	});
 	it("rejects an unknown style instead of guessing", async () => {

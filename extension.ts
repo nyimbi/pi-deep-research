@@ -702,7 +702,7 @@ export default async function (pi: ExtensionAPI) {
 					strict: params.strict !== false,
 					docsQa: createDocsQaRunner(),
 					renderDiagram: settings.diagrams.render ? createMmdcRenderer(settings.diagrams) : undefined,
-					styleDiagram: settings.diagrams.style === "editorial" ? styleForPackage : undefined,
+					styleDiagram: settings.diagrams.style === "editorial" ? (source, ctx) => { const r = styleForPackage(source, ctx); return "dark" in r && !settings.diagrams.dark ? { svg: r.svg, html: r.html } : r; } : undefined,
 					designGates: settings.diagrams.style === "editorial" ? (page) => runDesignGates(page, settings.diagrams.designSkillDir) : undefined,
 					entailment: llm() ? (text) => checkEntailment(text, ledger, llm()!, { embedder: embedder() }) : undefined,
 				});

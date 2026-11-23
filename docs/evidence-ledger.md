@@ -120,6 +120,10 @@ diagram), and a route for every arrow that avoids every other box. Anything else
 same tokens, and finalize warns with the reason, for example "is drawn by Mermaid, not in the editorial style: label
 over 14 characters". Shorten the label and it is drawn in style on the next run.
 
+Every editorial diagram is also drawn in the skill's dark skin (`diagrams.dark`, default true): `diagram-N.dark.svg`
+and `diagram-N.dark.html`, same layout with the dark tokens (paper `#2d3142`, ink `#f5f5f5`, accent `#f08a59`).
+`README.rendered.md` embeds both with a `<picture>` element, so a viewer picks by its colour scheme.
+
 When the skill is installed (`diagrams.design_skill_dir`, default `~/.claude/skills/diagram-design`), finalize also
 runs its `self_check.py` (accessible-SVG and page contract) and `verify-geometry.py` (the six connector rules) on
 every editorial page and reports findings as warnings. The skill itself is not copied into this repository.

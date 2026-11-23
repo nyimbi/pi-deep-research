@@ -89,6 +89,8 @@ export interface DiagramSettings {
 	/** `editorial` draws simple flowcharts in the diagram-design skill's style and falls back to Mermaid's own drawing for anything else; `mermaid` always uses Mermaid's. */
 	style: "editorial" | "mermaid";
 	/** Where the diagram-design skill is installed. Its self_check.py and verify-geometry.py gate every editorial page when present. */
+	/** Also write each editorial diagram in the skill's dark skin (`diagram-N.dark.svg` and `.dark.html`), and embed both with `<picture>`. */
+	dark: boolean;
 	designSkillDir: string;
 }
 
@@ -191,7 +193,7 @@ export const DEFAULT_SETTINGS: ResearchSettings = {
 	llm: { model: "", timeoutMs: 120_000 },
 	workers: { enabled: true, concurrency: 2, timeoutMs: 600_000 },
 	browser: { enabled: false, python: "python3", timeoutMs: 45_000 },
-	diagrams: { render: true, mmdc: "mmdc", timeoutMs: 60_000, style: "editorial", designSkillDir: join(homedir(), ".claude", "skills", "diagram-design") },
+	diagrams: { render: true, mmdc: "mmdc", timeoutMs: 60_000, style: "editorial", dark: true, designSkillDir: join(homedir(), ".claude", "skills", "diagram-design") },
 	docling: { enabled: false, command: "docling", device: "cpu", vlmModel: "", ocr: true, timeoutMs: 300_000 },
 	local: { enabled: true, minWords: 80, minCharsPerPage: 200, pdftotext: "pdftotext", maxPages: 200 },
 	uocr: {
@@ -377,6 +379,7 @@ export async function loadSettings(options: LoadSettingsOptions = {}): Promise<R
 				if (value !== "editorial" && value !== "mermaid") throw new Error(`diagrams.style must be "editorial" or "mermaid", got "${value}"`);
 				return value;
 			})(),
+			dark: bool(diagramsRaw.dark, DEFAULT_SETTINGS.diagrams.dark, "diagrams.dark"),
 			designSkillDir: text(diagramsRaw.design_skill_dir, DEFAULT_SETTINGS.diagrams.designSkillDir, "diagrams.design_skill_dir"),
 		},
 		browser: {

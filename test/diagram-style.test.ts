@@ -173,6 +173,18 @@ describe("editorialSvg", () => {
 		assert.ok(opt[0] + opt[2] > idLife, "the opt reaches Identity");
 		assert.ok(loop[1] + loop[3] + 12 <= opt[1], "frames are clear of one another");
 	});
+	it("returns the same drawing in the dark skin, with the dark tokens and no light ones", () => {
+		const r = styleForPackage(LR, { index: 1, caption: "The path." });
+		assert.ok("dark" in r);
+		const { svg, html } = r.dark;
+		assert.match(svg, /<rect width="100%" height="100%" fill="#2d3142"\/>/);
+		assert.match(svg, /#f08a59/);
+		for (const light of ["#bf4520", "#4f5d75", "#5a6580", "#ffffff"]) assert.ok(!svg.includes(light), `${light} is a light-skin token`);
+		assert.match(html, /background: #2d3142; color: #f5f5f5/);
+		assert.equal(svg.replace(/#[0-9a-fA-F]{6}|rgba\([^)]*\)/g, "C"), r.svg.replace(/#[0-9a-fA-F]{6}|rgba\([^)]*\)/g, "C"), "only colours differ");
+		const seq = styleForPackage("sequenceDiagram\n A->>B: hi\n opt x\n B-->>A: yo\n end", { index: 2, caption: undefined });
+		assert.ok("dark" in seq && !seq.dark.svg.includes("#4f5d75") && seq.dark.svg.includes("#bfc0c0"));
+	});
 	it("reads an arrow written without spaces", () => {
 		assert.ok(editorialSvg("sequenceDiagram\n A->>B: hi\n B-->>A: yo", opts()));
 		assert.ok(editorialSvg("flowchart LR\n A-->B", opts()));
@@ -225,6 +237,10 @@ describe("the diagram-design skill's own checks on every drawn type", { skip: !e
 			const file = join(dir, "d.html");
 			await writeFile(file, r.html);
 			assert.deepEqual(await runDesignGates(file, SKILL), []);
+			assert.ok("dark" in r);
+			const darkFile = join(dir, "d.dark.html");
+			await writeFile(darkFile, r.dark.html);
+			assert.deepEqual(await runDesignGates(darkFile, SKILL), []);
 		});
 	}
 });

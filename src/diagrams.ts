@@ -197,14 +197,18 @@ export function lintDiagrams(report: string): string[] {
 }
 
 /** Adds an image link after each fenced diagram whose SVG was written, so a viewer without Mermaid still shows the picture. */
-export function embedRenderedDiagrams(report: string, rendered: Iterable<number>): string {
+export function embedRenderedDiagrams(report: string, rendered: Iterable<number>, dark: Iterable<number> = []): string {
 	const ok = new Set(rendered);
+	const hasDark = new Set(dark);
 	let out = "";
 	let at = 0;
 	for (const block of mermaidBlocks(report)) {
 		if (!ok.has(block.index)) continue;
 		const alt = (captionOf(report, block) ?? `Diagram ${block.index}`).replace(/[\[\]\n]/g, " ").replace(/\s+/g, " ").slice(0, 200);
-		out += `${report.slice(at, block.end)}\n\n![${alt}](diagrams/diagram-${block.index}.svg)`;
+		const picture = hasDark.has(block.index)
+			? `<picture>\n  <source media="(prefers-color-scheme: dark)" srcset="diagrams/diagram-${block.index}.dark.svg">\n  <img alt="${alt.replace(/"/g, "&quot;")}" src="diagrams/diagram-${block.index}.svg">\n</picture>`
+			: `![${alt}](diagrams/diagram-${block.index}.svg)`;
+		out += `${report.slice(at, block.end)}\n\n${picture}`;
 		at = block.end;
 	}
 	return out + report.slice(at);

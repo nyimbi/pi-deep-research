@@ -135,6 +135,10 @@ describe("diagram density, repeats and embedding", () => {
 		assert.equal(out.match(/!\[Diagram 2\]\(diagrams\/diagram-2\.svg\)/g)?.length, 1);
 		assert.ok(out.indexOf("diagram-2.svg") > out.lastIndexOf("-->|2|"));
 		assert.equal(embedRenderedDiagrams("no diagrams", [1]), "no diagrams");
+		const both = embedRenderedDiagrams(`x\n\n${b("1")}\n\nmid\n\n${b("2")}`, [1, 2], [2]);
+		assert.match(both, /!\[Diagram 1\]\(diagrams\/diagram-1\.svg\)/);
+		assert.match(both, /<source media="\(prefers-color-scheme: dark\)" srcset="diagrams\/diagram-2\.dark\.svg">\s*<img alt="Diagram 2" src="diagrams\/diagram-2\.svg">/);
+		assert.ok(!both.includes("diagram-1.dark"));
 	});
 	it("uses the caption as the image alt text, with brackets removed", () => {
 		const r = "Latency fell [sharply] after the queue was added to the path.\n\n```mermaid\nflowchart LR\n  A -->|x| B\n```\n";

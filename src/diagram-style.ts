@@ -593,14 +593,25 @@ ${styled.svg}
 }
 
 /** The package hook: title and desc come from the report's caption sentence, or from the node labels when there is none. */
-export function styleForPackage(source: string, ctx: { index: number; caption: string | undefined }): { svg: string; html: string } | { refused: string } {
+export interface Styled { svg: string; html: string }
+
+function styleWith(source: string, ctx: { index: number; caption: string | undefined }, skin: Skin): Styled | { refused: string } {
 	const sequence = /^\s*(?:%%[^\n]*\n\s*)*sequenceDiagram\b/.test(source);
 	const g = sequence ? null : model(source);
 	const kind = sequence ? "Sequence" : (g?.kind ?? "Diagram");
 	const names = sequence ? [...source.matchAll(/^\s*(?:participant|actor)\s+\S+(?:\s+as\s+(.+))?$/gm)].map((m) => m[1]).filter(Boolean).join(", ") : (g?.nodes.filter((n) => !n.pseudo).map((n) => n.label).join(", ") ?? "");
 	const desc = (ctx.caption ?? `${kind} diagram${names ? ` of ${names}` : ""}.`).replace(/\s+/g, " ").trim();
 	const title = desc.length <= 60 ? desc.replace(/[.!]$/, "") : `${desc.slice(0, 57).replace(/\s+\S*$/, "")}...`;
-	const styled = editorialSvg(source, { slug: `diagram-${ctx.index}`, title, desc });
+	const styled = editorialSvg(source, { slug: `diagram-${ctx.index}`, title, desc, skin });
 	if (!styled) return { refused: refusal ?? "not a diagram this drawer reads" };
-	return { svg: styled.svg, html: editorialPage(styled, { title, eyebrow: `${kind} · Diagram Design` }) };
+	return { svg: styled.svg, html: editorialPage(styled, { title, eyebrow: `${kind} · Diagram Design`, skin }) };
+}
+
+/** The package hook: light drawing plus the same drawing in the skill's dark skin. Title and desc come from the caption sentence. */
+export function styleForPackage(source: string, ctx: { index: number; caption: string | undefined }): (Styled & { dark: Styled }) | { refused: string } {
+	const light = styleWith(source, ctx, LIGHT);
+	if ("refused" in light) return light;
+	const dark = styleWith(source, ctx, DARK);
+	if ("refused" in dark) return { refused: `dark skin: ${dark.refused}` };
+	return { ...light, dark };
 }
