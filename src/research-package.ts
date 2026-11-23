@@ -8,6 +8,7 @@ import { existsSync } from "node:fs";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, isAbsolute, join, resolve } from "node:path";
 import type { LedgerStats, SourceLedger } from "./ledger.ts";
+import type { EntailmentReport } from "./entailment.ts";
 import { CONFIDENCE_CAP, gradeFindings, type FindingGrade, type Grade } from "./grade.ts";
 import { checkClaims, describeClaimIssues } from "./claim-check.ts";
 import type { DocsQaRunner } from "./docs-qa.ts";
@@ -92,6 +93,8 @@ export interface FinalizeOptions {
 	strict?: boolean;
 	/** Runs the docs-qa gate over the written report; omit to skip. */
 	docsQa?: DocsQaRunner;
+	/** Local-model claim-to-passage check; omit to skip. Findings are warnings, never errors. */
+	entailment?: (report: string) => Promise<EntailmentReport>;
 	now?: Date;
 }
 
@@ -331,6 +334,18 @@ export async function writeResearchPackage(options: FinalizeOptions): Promise<Fi
 		else warnings.push(...qa.errors);
 		warnings.push(...qa.warnings);
 	}
+	let entailment: EntailmentReport | null = null;
+	if (options.entailment) {
+		try {
+			entailment = await options.entailment(report);
+			for (const f of entailment.findings.filter((f) => f.verdict === "unsupported")) {
+				warnings.push(`entailment: the cited passages do not appear to support "${f.excerpt}" (${f.urls.join(", ")})`);
+			}
+			if (entailment.errors) warnings.push(`entailment: ${entailment.errors} claim(s) could not be judged by the local model`);
+		} catch (error) {
+			warnings.push(`entailment check did not run: ${error instanceof Error ? error.message : String(error)}`);
+		}
+	}
 	const stats = options.ledger.stats(report);
 	const metadata = {
 		type: "avis-research-package-v1",
@@ -348,6 +363,7 @@ export async function writeResearchPackage(options: FinalizeOptions): Promise<Fi
 		raw_pages: pages,
 		stats,
 		evidence_grade: { overall: graded.overall, findings: graded.findings },
+		entailment,
 		failures: options.ledger.failureLog(),
 	};
 	await writeFile(join(packagePath, "research-package.json"), `${JSON.stringify(metadata, null, 2)}\n`, "utf8");

@@ -1,0 +1,92 @@
+[
+ {
+  "claim": "The default timeout is 30 seconds.",
+  "passage": "The connector's default timeout is 30 seconds and can be changed with the --timeout flag.",
+  "supported": true
+ },
+ {
+  "claim": "The default timeout is 60 seconds.",
+  "passage": "The connector's default timeout is 30 seconds and can be changed with the --timeout flag.",
+  "supported": false
+ },
+ {
+  "claim": "Revenue grew 12.5% in 2024.",
+  "passage": "In fiscal 2024 the company reported revenue growth of 12.5 percent, driven by cloud services.",
+  "supported": true
+ },
+ {
+  "claim": "Revenue grew 21.5% in 2024.",
+  "passage": "In fiscal 2024 the company reported revenue growth of 12.5 percent, driven by cloud services.",
+  "supported": false
+ },
+ {
+  "claim": "The library is licensed under Apache 2.0.",
+  "passage": "Released under the Apache License 2.0, the library may be used commercially.",
+  "supported": true
+ },
+ {
+  "claim": "The library is licensed under the GPL.",
+  "passage": "Released under the Apache License 2.0, the library may be used commercially.",
+  "supported": false
+ },
+ {
+  "claim": "Version 4.2 cut p99 latency by more than half.",
+  "passage": "Version 4.2 reduced p99 latency from 480 ms to 190 ms.",
+  "supported": true
+ },
+ {
+  "claim": "Version 4.2 cut p99 latency by 10 percent.",
+  "passage": "Version 4.2 reduced p99 latency from 480 ms to 190 ms.",
+  "supported": false
+ },
+ {
+  "claim": "The study enrolled 340 participants.",
+  "passage": "A total of 340 adults were enrolled across five sites between 2019 and 2021.",
+  "supported": true
+ },
+ {
+  "claim": "The study enrolled 340 children.",
+  "passage": "A total of 340 adults were enrolled across five sites between 2019 and 2021.",
+  "supported": false
+ },
+ {
+  "claim": "The treaty was signed in Geneva.",
+  "passage": "The agreement was signed at Geneva on 12 May 1993 by all eleven delegations.",
+  "supported": true
+ },
+ {
+  "claim": "The treaty was signed in Vienna.",
+  "passage": "The agreement was signed at Geneva on 12 May 1993 by all eleven delegations.",
+  "supported": false
+ },
+ {
+  "claim": "Jobs are retried up to 8 times before dead-lettering.",
+  "passage": "After 8 failed attempts the job moves to the dead letter table.",
+  "supported": true
+ },
+ {
+  "claim": "Jobs are never retried.",
+  "passage": "After 8 failed attempts the job moves to the dead letter table.",
+  "supported": false
+ },
+ {
+  "claim": "The company is headquartered in Nairobi.",
+  "passage": "Our weekly newsletter covers local weather, sports results and community events.",
+  "supported": false
+ },
+ {
+  "claim": "Tokyo is the capital of Japan.",
+  "passage": "Tokyo has been the capital of Japan since 1868 and is its most populous city.",
+  "supported": true
+ },
+ {
+  "claim": "The drug is approved for use in children under 5.",
+  "passage": "The drug is approved for adults. Safety in children under 12 has not been established.",
+  "supported": false
+ },
+ {
+  "claim": "Only the premium plan includes single sign-on.",
+  "passage": "Single sign-on is available on the premium and enterprise plans.",
+  "supported": false
+ }
+]

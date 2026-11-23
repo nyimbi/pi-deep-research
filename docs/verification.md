@@ -82,3 +82,27 @@ Limits: the tier list is the hostname table in `src/normalize.ts`, so an unliste
 site grades as tier 4; publication date is not graded because the ledger does not keep it; and
 the domain collapse is an approximation, not the public suffix list. The point values are a
 judgment, not calibrated against anything.
+
+## Entailment check
+
+When `llm.model` is set, `research_finalize` also asks the local model one binary question per
+cited Findings line: do the top three passages from the cited sources (retrieved with the hybrid
+ranker) support the claim, including its numbers, names and qualifiers. Unsupported claims
+become warnings, a model failure becomes a "could not be judged" warning rather than a pass, and
+the per-finding verdicts are saved under `entailment` in `research-package.json`. It never
+fails finalization: the deterministic claim check is the gate, and this is a second opinion.
+
+Agreement with hand labels (`node scripts/entailment-eval.ts <model>`, 18 claim and passage
+pairs in `test/fixtures/entailment/basic.json`, each unsupported claim altered in one number,
+name or scope), 2026-11-23:
+
+| Model | Agreement | False support | Time |
+|---|---|---|---|
+| `bonsai-2:9b` | 18/18 | 0 | 21 s |
+| `mimo-v2.6:9b` | 18/18 | 0 | 19 s |
+| `lfm3-omni:2b` | 17/18 | 1 | 8 s |
+
+The pairs are short, hand-written by one author, and single-passage, so the 9B models' perfect
+score shows the fixture is easy, not that the check is 100% accurate. The roadmap's 90% bar on
+Key Findings stays unverified until the fixture contains real archived passages and multi-hop
+claims. Pick a model by running the eval on your own fixture first.

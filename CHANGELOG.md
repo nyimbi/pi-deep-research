@@ -7,6 +7,7 @@ description: "Changelog for pi-deep-research skill"
 ## [Unreleased]
 
 ### Added
+- Opt-in entailment check in `research_finalize` (local model), with `npm run entailment-eval` for agreement against a labelled fixture.
 - Per-finding evidence grade from source tier and independent domains; finalize warns when declared confidence exceeds the weakest finding's cap.
 - Poisoned-page canary corpus (7 routes) guarding the fetch and quote gates.
 - Local LLM client (`llm.model`) and `source_claims`: quote-verified extraction that drops fabricated quotes, mismatched numbers and instruction-like text. See `docs/verification.md`.

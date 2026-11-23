@@ -36,7 +36,8 @@
     "release:major": "node scripts/release.mjs major",
     "typecheck": "tsc --noEmit",
     "docs-qa": "python3 scripts/docs_qa.py --canary && python3 scripts/docs_qa.py --root . --errors-only docs/research",
-    "retrieval-eval": "node scripts/retrieval-eval.ts"
+    "retrieval-eval": "node scripts/retrieval-eval.ts",
+    "entailment-eval": "node scripts/entailment-eval.ts"
   },
   "pi": {
     "skills": [

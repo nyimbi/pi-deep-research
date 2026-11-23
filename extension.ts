@@ -33,6 +33,7 @@ import {
 import { chunkText, headWords } from "./src/chunks.ts";
 import { createOllamaEmbedder, type Embedder } from "./src/embed.ts";
 import { createOllamaLlm, type LlmClient } from "./src/llm.ts";
+import { checkEntailment } from "./src/entailment.ts";
 import { quarantinedExtract } from "./src/quarantine.ts";
 import { rankPassages } from "./src/retrieval.ts";
 import { UrlProvenance } from "./src/provenance.ts";
@@ -518,6 +519,7 @@ export default async function (pi: ExtensionAPI) {
 					archiveRoot: settings.archiveRoot,
 					strict: params.strict !== false,
 					docsQa: createDocsQaRunner(),
+					entailment: llm() ? (text) => checkEntailment(text, ledger, llm()!, { embedder: embedder() }) : undefined,
 				});
 				const lines = [
 					result.errors.length ? "FINALIZATION FAILED" : "Research package written",
