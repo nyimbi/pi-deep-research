@@ -175,6 +175,11 @@ cites a URL the tools never returned. Details: [docs/evidence-ledger.md](docs/ev
   DNS resolution check that rejects a public hostname resolving inside the
   network. `safety.allow_private_hosts` and `safety.allowed_hosts` are the
   explicit escape hatches.
+- `web_extract` fetches only URLs the user typed or a tool returned, matched on the
+  whole URL including its query string, so an injected page cannot make the agent fetch
+  `https://evil.test/?q=<secret>`. Links found only inside extracted pages are capped at
+  `safety.max_page_link_fetches` (10) per human turn. `safety.allow_unlisted_urls` turns the
+  gate off.
 - Extracted text is wrapped in `<untrusted_source>` with a header telling the
   model it is data, never instructions. Search snippets carry the same warning.
 - Provider failures trip a circuit breaker after `breaker.failures` consecutive

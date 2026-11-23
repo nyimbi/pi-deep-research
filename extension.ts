@@ -31,6 +31,7 @@ import {
 	createUnlimitedOcrProvider,
 } from "./src/native/index.ts";
 import { chunkText, headWords, rankChunks } from "./src/chunks.ts";
+import { UrlProvenance } from "./src/provenance.ts";
 import { RawStore } from "./src/raw-store.ts";
 import { writeResearchPackage } from "./src/research-package.ts";
 import { JsonCache, ProviderBreaker, makeRetryFetch } from "./src/runtime.ts";
@@ -65,6 +66,14 @@ export default async function (pi: ExtensionAPI) {
 	const rawStore = new RawStore(join(settings.cache.dir, "raw"));
 	const breaker = new ProviderBreaker(settings.breaker);
 	let ledger = new SourceLedger();
+	const provenance = new UrlProvenance();
+	pi.on("input", (event) => {
+		if (event.source !== "extension") {
+			provenance.noteUserText(event.text);
+			provenance.newTurn();
+		}
+		return { action: "continue" };
+	});
 	let activeResearchId: string | null = null;
 
 	const native = [
@@ -193,6 +202,14 @@ export default async function (pi: ExtensionAPI) {
 			const sections: string[] = [];
 			const failures: string[] = [];
 			for (const url of urls) {
+				const verdict = provenance.check(url, ledger, {
+					maxPageLinkFetches: settings.safety.maxPageLinkFetches,
+					allowUnlisted: settings.safety.allowUnlistedUrls,
+				});
+				if (!verdict.ok) {
+					failures.push(`${url}: refused, ${verdict.reason}`);
+					continue;
+				}
 				try {
 					const result = await chainExtract(chainFor("web"), url, {
 						timeoutMs: settings.timeoutMs,
@@ -202,6 +219,7 @@ export default async function (pi: ExtensionAPI) {
 						ledger,
 						safety: settings.safety,
 					});
+					provenance.notePageText(result.content);
 					let pageNote = "";
 					try {
 						const raw = await rawStore.capture(url, { policy: settings.safety, maxBytes: settings.archiveMaxBytes });

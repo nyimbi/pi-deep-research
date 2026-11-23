@@ -66,6 +66,10 @@ export interface SafetySettings {
 	allowedHosts: string[];
 	blockedHosts: string[];
 	allowedPorts: number[];
+	/** Page-link fetches (URLs found only inside extracted pages) per human turn. */
+	maxPageLinkFetches: number;
+	/** Escape hatch: fetch URLs with no provenance. Off by default. */
+	allowUnlistedUrls: boolean;
 }
 
 export interface BudgetSettings {
@@ -130,6 +134,8 @@ export const DEFAULT_SETTINGS: ResearchSettings = {
 		allowedHosts: [],
 		blockedHosts: [],
 		allowedPorts: [80, 443],
+		maxPageLinkFetches: 10,
+		allowUnlistedUrls: false,
 	},
 	budget: { maxSearches: 80, maxExtracts: 60 },
 };
@@ -281,6 +287,8 @@ export async function loadSettings(options: LoadSettingsOptions = {}): Promise<R
 			allowedHosts: strings(safetyRaw.allowed_hosts, DEFAULT_SETTINGS.safety.allowedHosts, "safety.allowed_hosts").map((host) => host.toLowerCase()),
 			blockedHosts: strings(safetyRaw.blocked_hosts, DEFAULT_SETTINGS.safety.blockedHosts, "safety.blocked_hosts").map((host) => host.toLowerCase()),
 			allowedPorts: numbers(safetyRaw.allowed_ports, DEFAULT_SETTINGS.safety.allowedPorts, "safety.allowed_ports"),
+			maxPageLinkFetches: number(safetyRaw.max_page_link_fetches, DEFAULT_SETTINGS.safety.maxPageLinkFetches, "safety.max_page_link_fetches"),
+			allowUnlistedUrls: bool(safetyRaw.allow_unlisted_urls, DEFAULT_SETTINGS.safety.allowUnlistedUrls, "safety.allow_unlisted_urls"),
 		},
 		budget: {
 			maxSearches: number(budgetRaw.max_searches, DEFAULT_SETTINGS.budget.maxSearches, "budget.max_searches"),
