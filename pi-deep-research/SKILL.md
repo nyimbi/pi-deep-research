@@ -243,6 +243,13 @@ one archived Markdown copy per extracted source, `research-package.json`, and
 `ledger.json`. It rejects a report that cites a URL the tools never returned,
 and it warns when a cited source was never extracted.
 
+It checks every cited sentence against the archived text: each percentage, decimal and
+number of three or more digits, and each quoted passage, must appear in a source cited in
+that sentence. A mismatch fails finalization as `claim check: number "15.5%" is not in the
+cited source(s) ...`. Copy figures and quotes exactly as the source prints them. Mark
+arithmetic over cited figures with `(derived)` in that sentence, and cite the page that
+carries a number in the same sentence as the number.
+
 It also runs the docs-qa gate (`scripts/docs_qa.py`) over the report, and any
 error fails finalization. Write the report so it passes the first time: no em
 dashes or en dashes (use a comma, colon, parentheses or "to"), no curly quotes,

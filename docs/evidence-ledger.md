@@ -33,6 +33,13 @@ into the package beside the extracted text, so a reader has both the readable
 version and the artefact it came from. A page that blocks capture is reported;
 the extracted text is still archived.
 
+Finalization also verifies claims deterministically (`src/claim-check.ts`). Within a cited
+bullet, table row or sentence, every percentage, decimal and number of three or more digits,
+and every quoted passage of three or more words, must appear in a cited archived source.
+Small bare integers are ignored, a sentence marked `(derived)` is skipped, and a source
+that was never extracted is skipped (it already fails the extraction check). A source that
+spells a number out in words reads as a mismatch.
+
 The report must also pass the vendored docs-qa gate (`scripts/docs_qa.py`, a copy of the
 global `~/.claude/scripts/docs_qa.py`): an error such as an em dash fails finalization,
 and `strict: false` downgrades it to a warning. If Python 3 is missing the gate fails

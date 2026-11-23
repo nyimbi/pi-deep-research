@@ -8,6 +8,7 @@ import { existsSync } from "node:fs";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, isAbsolute, join, resolve } from "node:path";
 import type { LedgerStats, SourceLedger } from "./ledger.ts";
+import { checkClaims, describeClaimIssues } from "./claim-check.ts";
 import type { DocsQaRunner } from "./docs-qa.ts";
 import { extractUrls, hostOf, normalizeUrl } from "./normalize.ts";
 
@@ -193,6 +194,10 @@ export async function writeResearchPackage(options: FinalizeOptions): Promise<Fi
 		errors.push(`report cites ${citations.unknown.length} URL(s) the tools never returned: ${citations.unknown.join(", ")}`);
 	}
 	if (citations.known.length === 0) errors.push("report cites no source returned by the search tools");
+
+	const claimIssues = describeClaimIssues(checkClaims(report, (url) => options.ledger.source(url)?.extracted?.content));
+	if (options.strict !== false) errors.push(...claimIssues);
+	else warnings.push(...claimIssues);
 
 	const cited = new Set(citations.known.map((url) => normalizeUrl(url)));
 	const entries = options.ledger
