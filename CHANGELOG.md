@@ -7,6 +7,7 @@ description: "Changelog for pi-deep-research skill"
 ## [Unreleased]
 
 ### Added
+- `research_workers`: up to 8 sub-questions in parallel, each in an isolated agent session; claims survive only if they cite a URL the ledger holds.
 - Domain adapters (EDGAR, ClinicalTrials.gov, PubMed, CourtListener, GitHub code search, GDELT) with typed records, reached through `web_search` with `sources: "domain"`.
 - Local Chromium rendering for JavaScript pages (off by default). Every request, subresources included, goes through the fetch-safety policy; no cookies carry over.
 - Docling provider (CLI, off by default) for PDFs, office files and images, with a VLM preset option.

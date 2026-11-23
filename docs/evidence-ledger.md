@@ -156,3 +156,24 @@ A plain-text 200 (GDELT's rate limit) is reported as a rate limit, not an empty 
 search and government statistics are not built; check the current USPTO, FRED and World Bank
 endpoints first.
 
+## Parallel workers
+
+The Pi host has no built-in sub-agents, but its SDK can create isolated sessions, so
+`research_workers` runs up to 8 sub-questions at once (`src/workers.ts`, `src/worker-session.ts`).
+Each worker is a fresh in-memory session on the current model with only `web_search`,
+`web_extract`, `source_read` and `source_claims`, no extensions (so no recursion), skills or context
+files, and a fixed prompt. Workers share the ledger, provenance state, robots checks and budget with
+the orchestrator, so every fetch is governed as before.
+
+A worker returns lines of the form `claim [source: URL]` plus optional `Gap:` lines. The orchestrator
+parses them and keeps a claim only if one of its URLs is in the ledger; a claim with an unknown URL is
+dropped and counted, and a claim that cites only a search snippet is labelled as such. The output is
+a set of leads: the main agent still reads, grades and records findings with `research_notes`. One
+worker failing or timing out does not lose the others. Settings: `workers.enabled`,
+`workers.concurrency` (default 2, because local models share one machine) and `workers.timeout_ms`.
+
+Measured: one worker on `mimo-v2.6:9b` with a stub search tool answered in 14 s and used the tool.
+Whether parallel workers beat a single agent on answer quality is not measured here, so the
+gain the roadmap cites (Tongyi Heavy Mode) is unconfirmed for this pipeline. The cap of 8 follows
+the reported flattening past that point.
+

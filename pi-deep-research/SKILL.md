@@ -172,6 +172,12 @@ method in `../references/claude-research-alignment.md`:
 - Community discussion (forums, GitHub issues) for real-world experience
 - Cross-validate: if only press releases say something positive, be skeptical
 
+**Parallel workers** (broad questions only) — when the plan has three or more independent
+sub-questions, `research_workers` runs up to 8 of them at once, each in an isolated context, and
+returns short cited claims. Keep concurrency low on a local model. Treat every returned claim as a
+lead: it cites a URL the ledger holds, but you still read the source, grade it and record it with
+`research_notes` before the report uses it. For a narrow question, search directly.
+
 ### Phase 3 — Checkpoint & Reflect (MANDATORY)
 
 **After EVERY search round, you MUST call the `research_checkpoint` tool.** This is not optional.

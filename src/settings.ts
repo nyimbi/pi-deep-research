@@ -88,6 +88,13 @@ export interface BrowserSettings {
 	timeoutMs: number;
 }
 
+export interface WorkerSettings {
+	enabled: boolean;
+	/** Workers running at once. Local models share one machine, so the default is small. */
+	concurrency: number;
+	timeoutMs: number;
+}
+
 export interface UocrSettings {
 	/** Base URL of the SGLang server; empty disables the provider. */
 	baseUrl: string;
@@ -141,6 +148,7 @@ export interface ResearchSettings {
 	local: LocalExtractSettings;
 	docling: DoclingSettings;
 	browser: BrowserSettings;
+	workers: WorkerSettings;
 	uocr: UocrSettings;
 	context: ContextSettings;
 	archiveRoot: string;
@@ -167,6 +175,7 @@ export const DEFAULT_SETTINGS: ResearchSettings = {
 	ollama: { enabled: true, host: "127.0.0.1", port: "11434" },
 	embeddings: { enabled: true, model: "embeddinggemma", queryPrefix: "" },
 	llm: { model: "", timeoutMs: 120_000 },
+	workers: { enabled: true, concurrency: 2, timeoutMs: 600_000 },
 	browser: { enabled: false, python: "python3", timeoutMs: 45_000 },
 	docling: { enabled: false, command: "docling", device: "cpu", vlmModel: "", ocr: true, timeoutMs: 300_000 },
 	local: { enabled: true, minWords: 80, minCharsPerPage: 200, pdftotext: "pdftotext", maxPages: 200 },
@@ -276,6 +285,7 @@ export async function loadSettings(options: LoadSettingsOptions = {}): Promise<R
 	const localRaw = object(raw.local_extract, "local_extract");
 	const doclingRaw = object(raw.docling, "docling");
 	const browserRaw = object(raw.browser, "browser");
+	const workersRaw = object(raw.workers, "workers");
 	const uocrRaw = object(raw.unlimited_ocr, "unlimited_ocr");
 	const contextRaw = object(raw.context, "context");
 	const safetyRaw = object(raw.safety, "safety");
@@ -335,6 +345,11 @@ export async function loadSettings(options: LoadSettingsOptions = {}): Promise<R
 		llm: {
 			model: env.LLM_MODEL?.trim() || text(llmRaw.model, DEFAULT_SETTINGS.llm.model, "llm.model"),
 			timeoutMs: number(llmRaw.timeout_ms, DEFAULT_SETTINGS.llm.timeoutMs, "llm.timeout_ms"),
+		},
+		workers: {
+			enabled: bool(workersRaw.enabled, DEFAULT_SETTINGS.workers.enabled, "workers.enabled"),
+			concurrency: number(workersRaw.concurrency, DEFAULT_SETTINGS.workers.concurrency, "workers.concurrency"),
+			timeoutMs: number(workersRaw.timeout_ms, DEFAULT_SETTINGS.workers.timeoutMs, "workers.timeout_ms"),
 		},
 		browser: {
 			enabled: bool(env.BROWSER_RENDER === "on" ? true : browserRaw.enabled, DEFAULT_SETTINGS.browser.enabled, "browser.enabled"),

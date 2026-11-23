@@ -48,6 +48,8 @@ import { rankPassages } from "./src/retrieval.ts";
 import { UrlProvenance } from "./src/provenance.ts";
 import { RobotsChecker } from "./src/robots.ts";
 import { findSnapshot, wayBackEligible } from "./src/wayback.ts";
+import { createWorkerRunner } from "./src/worker-session.ts";
+import { MAX_WORKERS, renderWorkerOutcomes, runWorkers } from "./src/workers.ts";
 import { RawStore } from "./src/raw-store.ts";
 import { addFinding, loadNotes, newNotes, renderNotes, saveNotes } from "./src/notes.ts";
 import { resolveArchiveRoot, writeResearchPackage } from "./src/research-package.ts";
@@ -96,6 +98,12 @@ export default async function (pi: ExtensionAPI) {
 		return { action: "continue" };
 	});
 	let activeResearchId: string | null = null;
+	/** Tool definitions by name, so isolated workers can be given the same tools. */
+	const toolDefs: Record<string, unknown> = {};
+	const registerTool: typeof pi.registerTool = (def) => {
+		toolDefs[def.name] = def;
+		pi.registerTool(def);
+	};
 
 	const native = [
 		createTavilyProvider(retryFetch),
@@ -157,7 +165,7 @@ export default async function (pi: ExtensionAPI) {
 	});
 
 	// ── Tool: web_search ──
-	pi.registerTool({
+	registerTool({
 		name: "web_search",
 		label: "Web Search",
 		description: [
@@ -219,7 +227,7 @@ export default async function (pi: ExtensionAPI) {
 	});
 
 	// ── Tool: web_extract ──
-	pi.registerTool({
+	registerTool({
 		name: "web_extract",
 		label: "Web Extract",
 		description: [
@@ -343,7 +351,7 @@ export default async function (pi: ExtensionAPI) {
 	};
 
 	// ── Tool: source_claims ──
-	pi.registerTool({
+	registerTool({
 		name: "source_claims",
 		label: "Source Claims",
 		description: [
@@ -372,7 +380,7 @@ export default async function (pi: ExtensionAPI) {
 	});
 
 	// ── Tool: source_read ──
-	pi.registerTool({
+	registerTool({
 		name: "source_read",
 		label: "Source Read",
 		description: [
@@ -411,8 +419,39 @@ export default async function (pi: ExtensionAPI) {
 		},
 	});
 
+	// ── Tool: research_workers ──
+	registerTool({
+		name: "research_workers",
+		label: "Research Workers",
+		description: [
+			`Run up to ${MAX_WORKERS} sub-questions in parallel, each in its own isolated agent context with only the search and read tools.`,
+			"Each worker returns short cited claims; a claim is kept only if a URL it cites is in the shared ledger.",
+			"Results are leads: read the sources, then record findings with research_notes before the report uses them.",
+			"Use for broad questions with independent sub-questions; for narrow ones, search directly.",
+		].join(" "),
+		parameters: Type.Object({
+			sub_questions: Type.Array(Type.String(), { description: "Independent sub-questions, one worker each", minItems: 1, maxItems: MAX_WORKERS }),
+			concurrency: Type.Optional(Type.Number({ description: "Workers running at once (default from settings)" })),
+		}),
+		async execute(_toolCallId, params, signal, _onUpdate, ctx) {
+			const reply = (text: string) => ({ content: [{ type: "text" as const, text }], details: undefined });
+			if (!ctx?.model) return reply("No model is selected, so workers cannot start.");
+			if (!settings.workers.enabled) return reply("Workers are disabled (workers.enabled is false).");
+			const budget = ledger.budgetExceeded(settings.budget.maxSearches, settings.budget.maxExtracts);
+			if (budget) return reply(`Research budget reached: ${budget}.`);
+			const outcomes = await runWorkers(params.sub_questions, {
+				concurrency: Math.min(params.concurrency ?? settings.workers.concurrency, MAX_WORKERS),
+				timeoutMs: settings.workers.timeoutMs,
+				ledger,
+				signal,
+				run: createWorkerRunner({ cwd: ctx.cwd, model: ctx.model, tools: toolDefs, toolNames: ["web_search", "web_extract", "source_read", "source_claims"] }),
+			});
+			return reply(renderWorkerOutcomes(outcomes));
+		},
+	});
+
 	// ── Tool: research_notes ──
-	pi.registerTool({
+	registerTool({
 		name: "research_notes",
 		label: "Research Notes",
 		description: [
@@ -502,7 +541,7 @@ export default async function (pi: ExtensionAPI) {
 		exhaustive: { minSearchRounds: 5, maxSearchRounds: 20, minSources: 15, confidenceThreshold: 95, minAnsweredRatio: 0.9 },
 	};
 
-	pi.registerTool({
+	registerTool({
 		name: "research_checkpoint",
 		label: "Research Checkpoint",
 		description: [
@@ -626,7 +665,7 @@ export default async function (pi: ExtensionAPI) {
 	});
 
 	// ── Tool: research_finalize ──
-	pi.registerTool({
+	registerTool({
 		name: "research_finalize",
 		label: "Research Finalize",
 		description: [
