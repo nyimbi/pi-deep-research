@@ -180,3 +180,20 @@ Report every number with its fixture size and what it does not cover.
   exact rate limits remain unverified (track C open items).
 - Docling versus Unlimited-OCR on our own PDFs: no independent head-to-head exists, so the
   4.2 and 4.3 fixture decides.
+
+## Implementation status (2026-11-23)
+
+Phases 0 to 6 are built, tested and pushed, with the additions listed in `CHANGELOG.md`. These items are
+not closed, and each waits on something outside the code:
+
+| Item | State | Needs |
+|---|---|---|
+| CourtListener adapter | Documented response shape only. Anonymous search returns 401. | A `COURTLISTENER_TOKEN` |
+| GDELT adapter | Documented shape only. Every probe from this host returned 429, including after a 28 second wait. | Removal, or a network where it answers. Removal is recommended: nothing depends on it. |
+| Worker quality versus a single agent | Unmeasured. One worker answered a stub question in 14 s and used its tool; that is all that was run. | A graded question set with known answers and several runs per arm. A quick run on a 9B model would be noise. |
+| Phase 3.7 diagrams (Mermaid check, render, charts, lint, evidence graph) | Built and tested before approval. | A keep or revert decision. |
+| Playwright WebSocket interception | The page's `WebSocket` constructor is removed. A worker or a page that restores the native one is not covered. | Not planned. |
+| `sources/` (129 MB of PDFs, untracked, public repo), `.github/workflows`, the zvec index job | Untouched. | The owner's decision. |
+
+Verified against live services: EDGAR, ClinicalTrials.gov, PubMed, GitHub code search, and the llama.cpp OCR
+backend (see `docs/research/unlimited-ocr-llama-cpp/`).
