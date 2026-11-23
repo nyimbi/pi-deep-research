@@ -33,6 +33,11 @@ into the package beside the extracted text, so a reader has both the readable
 version and the artefact it came from. A page that blocks capture is reported;
 the extracted text is still archived.
 
+The report must also pass the vendored docs-qa gate (`scripts/docs_qa.py`, a copy of the
+global `~/.claude/scripts/docs_qa.py`): an error such as an em dash fails finalization,
+and `strict: false` downgrades it to a warning. If Python 3 is missing the gate fails
+closed rather than passing silently.
+
 It rejects a report that cites a URL the tools never returned, and warns when
 a cited source was never extracted. Citation checking is the difference between
 a report that looks sourced and one that can be re-read.

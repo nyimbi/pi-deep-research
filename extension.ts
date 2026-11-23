@@ -12,6 +12,7 @@ import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { createJiti } from "jiti";
 import { Type } from "@sinclair/typebox";
 import { chainBatchSearch, chainExtract, chainSearch, chainSearchAll, formatAttempts, type ChainSearchOptions } from "./src/chain.ts";
+import { createDocsQaRunner } from "./src/docs-qa.ts";
 import { resolveChain } from "./src/config.ts";
 import { SourceLedger } from "./src/ledger.ts";
 import { loadPlugins, providersDir } from "./src/loader.ts";
@@ -426,6 +427,7 @@ export default async function (pi: ExtensionAPI) {
 					ledger,
 					archiveRoot: settings.archiveRoot,
 					strict: params.strict !== false,
+					docsQa: createDocsQaRunner(),
 				});
 				const lines = [
 					result.errors.length ? "FINALIZATION FAILED" : "Research package written",

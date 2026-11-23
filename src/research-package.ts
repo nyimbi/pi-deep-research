@@ -8,6 +8,7 @@ import { existsSync } from "node:fs";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, isAbsolute, join, resolve } from "node:path";
 import type { LedgerStats, SourceLedger } from "./ledger.ts";
+import type { DocsQaRunner } from "./docs-qa.ts";
 import { extractUrls, hostOf, normalizeUrl } from "./normalize.ts";
 
 export const REQUIRED_HEADINGS = [
@@ -43,6 +44,8 @@ export interface FinalizeOptions {
 	ledger: SourceLedger;
 	archiveRoot: string;
 	strict?: boolean;
+	/** Runs the docs-qa gate over the written report; omit to skip. */
+	docsQa?: DocsQaRunner;
 	now?: Date;
 }
 
@@ -258,6 +261,13 @@ export async function writeResearchPackage(options: FinalizeOptions): Promise<Fi
 	}
 	await writeFile(indexPath, index, "utf8");
 	await writeFile(readmePath, report, "utf8");
+	if (options.docsQa) {
+		const qa = await options.docsQa(readmePath, packagePath);
+		// Same rule as the citation gate: strict turns findings into failures, non-strict reports them.
+		if (options.strict !== false) errors.push(...qa.errors);
+		else warnings.push(...qa.errors);
+		warnings.push(...qa.warnings);
+	}
 	const stats = options.ledger.stats(report);
 	const metadata = {
 		type: "avis-research-package-v1",

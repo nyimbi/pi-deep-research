@@ -243,6 +243,13 @@ one archived Markdown copy per extracted source, `research-package.json`, and
 `ledger.json`. It rejects a report that cites a URL the tools never returned,
 and it warns when a cited source was never extracted.
 
+It also runs the docs-qa gate (`scripts/docs_qa.py`) over the report, and any
+error fails finalization. Write the report so it passes the first time: no em
+dashes or en dashes (use a comma, colon, parentheses or "to"), no curly quotes,
+no invisible characters, balanced code fences, consistent table columns, no
+empty or skipped-level headings, and no filler phrases. Findings come back as
+`docs-qa RULE README.md:LINE message`; fix each at that line and call finalize again.
+
 If it returns `FINALIZATION FAILED`, fix the report or gather the missing
 evidence and call it again. When it returns success, report the package path
 and stop. The user decides next steps.

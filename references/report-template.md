@@ -141,6 +141,9 @@ factual question.
 
 ## Sources
 
+The report must pass the docs-qa gate (`scripts/docs_qa.py`); `research_finalize` runs it
+and fails on any error. Avoid em and en dashes above all.
+
 The finalizer generates `sources/INDEX.md` from the evidence ledger and
 archives each extracted source with a SHA-256. Cite papers by DOI, arXiv ID or
 PMID where available, and pin a line or section when the extracted text exposes

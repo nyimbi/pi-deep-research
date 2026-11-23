@@ -7,6 +7,7 @@ description: "Changelog for pi-deep-research skill"
 ## [Unreleased]
 
 ### Added
+- `research_finalize` runs the vendored docs-qa gate over the report and fails on errors.
 - `source_read` tool and an inline word budget for `web_extract`: pages are cut to
   `context.inline_words`, and the rest is read by query or position from the ledger.
 - `unlimited-ocr` extract provider: local PDF and image OCR through a Baidu
