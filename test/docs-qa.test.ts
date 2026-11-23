@@ -37,7 +37,16 @@ What timeout should the connector use?
 
 ## Gaps
 
-- None.
+- Only one source was available.
+
+## Scope
+
+- In scope: the connector timeout.
+- Out of scope: retry jitter.
+
+## Contradictions
+
+- None found after checking 1 source.
 
 ## Sources
 

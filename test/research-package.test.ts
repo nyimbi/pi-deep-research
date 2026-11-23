@@ -41,7 +41,16 @@ What timeout should the connector use?
 
 ## Gaps
 
-- None.
+- Only one source was available.
+
+## Scope
+
+- In scope: the connector timeout.
+- Out of scope: retry jitter.
+
+## Contradictions
+
+- None found after checking 1 source.
 
 ## Sources
 
@@ -186,5 +195,35 @@ describe("writeResearchPackage", () => {
 			}),
 			/invalid research slug/,
 		);
+	});
+});
+
+import { checkHonestySections } from "../src/research-package.ts";
+
+describe("checkHonestySections", () => {
+	const base = (gaps: string, scope: string, contradictions: string) =>
+		`## Gaps\n\n${gaps}\n\n## Scope\n\n${scope}\n\n## Contradictions\n\n${contradictions}\n\n## Sources\n`;
+	const SCOPE = "- In scope: a\n- Out of scope: b";
+	const ok = "- Source A says 5, source B says 6 ([a](https://a.example/x), [b](https://b.example/y)).";
+
+	it("accepts a substantive report", () => {
+		assert.deepEqual(checkHonestySections(base("- One source.", SCOPE, ok)), []);
+		assert.deepEqual(checkHonestySections(base("- One source.", SCOPE, "None found after checking 4 sources.")), []);
+	});
+
+	it("rejects empty or token answers", () => {
+		for (const gaps of ["- None.", "- N/A", "None recorded.", "- none"]) {
+			assert.match(checkHonestySections(base(gaps, SCOPE, ok)).join(), /## Gaps/);
+		}
+	});
+
+	it("requires both halves of Scope", () => {
+		assert.match(checkHonestySections(base("- g", "- In scope: a", ok)).join(), /## Scope/);
+	});
+
+	it("requires two distinct sources per contradiction, and a real entry", () => {
+		assert.match(checkHonestySections(base("- g", SCOPE, "- A conflicts with B ([a](https://a.example/x)).")).join(), /fewer than two/);
+		assert.match(checkHonestySections(base("- g", SCOPE, "- A conflicts ([a](https://a.example/x) [a2](https://a.example/x#f)).")).join(), /fewer than two/);
+		assert.match(checkHonestySections(base("- g", SCOPE, "")).join(), /## Contradictions must list/);
 	});
 });

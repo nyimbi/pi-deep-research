@@ -238,6 +238,14 @@ Call `research_finalize` with:
 - `confidence` — the final checkpoint value
 - `decisions`, `rejected_options`, `gaps`
 
+The report must carry these `##` sections: Question, Findings, Decisions, Rejected
+options, Confidence, Gaps, Scope, Contradictions, Sources. Three of them are checked for
+substance, not just presence:
+- `## Gaps` names at least one limit, unanswered question or weak source. "None" fails.
+- `## Scope` has an "In scope" line and an "Out of scope" line.
+- `## Contradictions` lists each conflict with at least two distinct source URLs, or says
+  "None found after checking N sources."
+
 The tool writes `docs/research/<slug>/` with the README, `sources/INDEX.md`,
 one archived Markdown copy per extracted source, `research-package.json`, and
 `ledger.json`. It rejects a report that cites a URL the tools never returned,

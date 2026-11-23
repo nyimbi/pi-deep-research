@@ -53,7 +53,7 @@ describe("claim checks in research_finalize", () => {
 		l.recordExtract(url, { title: "Spec", url, content: sources[url], wordCount: 30, provider: "tavily" });
 		return l;
 	};
-	const report = (finding: string) => `# T\n\n## Question\n\nq\n\n## Findings\n\n- ${finding} ([spec](${url}))\n\n## Decisions\n\n- d\n\n## Rejected options\n\n- r\n\n## Confidence\n\n- high\n\n## Gaps\n\n- g\n\n## Sources\n\nSee [spec](${url}).\n`;
+	const report = (finding: string) => `# T\n\n## Question\n\nq\n\n## Findings\n\n- ${finding} ([spec](${url}))\n\n## Decisions\n\n- d\n\n## Rejected options\n\n- r\n\n## Confidence\n\n- high\n\n## Gaps\n\n- Only one source was available.\n\n## Scope\n\n- In scope: the connector timeout.\n- Out of scope: retry jitter.\n\n## Contradictions\n\n- None found after checking 1 source.\n\n## Sources\n\nSee [spec](${url}).\n`;
 
 	it("fails a planted wrong number and passes the right one", async () => {
 		const cwd = await mkdtemp(join(tmpdir(), "pi-claim-"));

@@ -19,8 +19,52 @@ export const REQUIRED_HEADINGS = [
 	"## Rejected options",
 	"## Confidence",
 	"## Gaps",
+	"## Scope",
+	"## Contradictions",
 	"## Sources",
 ] as const;
+
+/** Text under a `## Heading` up to the next `## ` heading. */
+export function sectionBody(report: string, heading: string): string | null {
+	const lines = report.split("\n");
+	const start = lines.findIndex((line) => line.trim().toLowerCase() === `## ${heading}`.toLowerCase());
+	if (start < 0) return null;
+	const rest = lines.slice(start + 1);
+	const end = rest.findIndex((line) => /^##\s/.test(line));
+	return (end < 0 ? rest : rest.slice(0, end)).join("\n").trim();
+}
+
+const EMPTY_ANSWER = /^[\s\-*]*(none|n\/a|nothing|no gaps?|none recorded|not applicable)\b[\s.]*$/i;
+
+/**
+ * Content rules for the sections that keep a report honest: scope, gaps and
+ * contradictions must say something. Returns messages; the caller decides
+ * whether they fail finalization.
+ */
+export function checkHonestySections(report: string): string[] {
+	const issues: string[] = [];
+	const scope = sectionBody(report, "Scope");
+	if (scope !== null && !(/in scope/i.test(scope) && /out of scope/i.test(scope))) {
+		issues.push("## Scope must state what is in scope and what is out of scope");
+	}
+	const gaps = sectionBody(report, "Gaps");
+	if (gaps !== null && (!gaps || gaps.split("\n").every((line) => !line.trim() || EMPTY_ANSWER.test(line)))) {
+		issues.push("## Gaps is empty or only says none; name at least one limit, unanswered question or weak source");
+	}
+	const contradictions = sectionBody(report, "Contradictions");
+	if (contradictions !== null) {
+		const entries = contradictions.split("\n").filter((line) => /^\s*[-*]\s+\S/.test(line));
+		const noneFound = /^[\s\-*]*none found\b/i.test(contradictions);
+		if (!entries.length && !noneFound) issues.push("## Contradictions must list conflicts or say 'None found after checking N sources.'");
+		for (const entry of entries) {
+			if (/^\s*[-*]\s+none found\b/i.test(entry)) continue;
+			if (new Set(extractUrls(entry).map(normalizeUrl)).size < 2) {
+				issues.push(`## Contradictions entry cites fewer than two distinct sources: "${entry.trim().slice(0, 80)}"`);
+			}
+		}
+	}
+	return issues;
+}
 
 const INDEX_HEADER = `# Sources
 
@@ -188,6 +232,10 @@ export async function writeResearchPackage(options: FinalizeOptions): Promise<Fi
 	const ensured = ensureSections(report, options);
 	report = ensured.report;
 	warnings.push(...ensured.warnings);
+
+	const honesty = checkHonestySections(report);
+	if (options.strict !== false) errors.push(...honesty);
+	else warnings.push(...honesty);
 
 	const citations = options.ledger.citations(report);
 	if (citations.unknown.length && options.strict !== false) {

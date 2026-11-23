@@ -14,7 +14,8 @@ in a verdict is measured, not self-reported.
 ```
 docs/research/<slug>/
   README.md              report with Question, Findings, Decisions,
-                         Rejected options, Confidence, Gaps, Sources
+                         Rejected options, Confidence, Gaps, Scope,
+                         Contradictions, Sources
   report.md              the report as written, when it differs
   sources/INDEX.md       URL, access date, local file, SHA-256, tier
   sources/<file>.md      archived extracted text
@@ -32,6 +33,10 @@ directory, subject to the same URL policy and size cap. Finalization copies it
 into the package beside the extracted text, so a reader has both the readable
 version and the artefact it came from. A page that blocks capture is reported;
 the extracted text is still archived.
+
+Three sections are checked for content. `## Gaps` must name a real limit (a bare "None" fails),
+`## Scope` must state what is in and out of scope, and every `## Contradictions` entry must cite
+at least two distinct sources, or the section must say "None found after checking N sources."
 
 Finalization also verifies claims deterministically (`src/claim-check.ts`). Within a cited
 bullet, table row or sentence, every percentage, decimal and number of three or more digits,
