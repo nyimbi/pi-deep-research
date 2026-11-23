@@ -7,6 +7,8 @@ description: "Changelog for pi-deep-research skill"
 ## [Unreleased]
 
 ### Added
+- Per-finding evidence grade from source tier and independent domains; finalize warns when declared confidence exceeds the weakest finding's cap.
+- Poisoned-page canary corpus (7 routes) guarding the fetch and quote gates.
 - Local LLM client (`llm.model`) and `source_claims`: quote-verified extraction that drops fabricated quotes, mismatched numbers and instruction-like text. See `docs/verification.md`.
 - Search results are freshness-filtered on `publishedDate`, deduplicated by simhash and diversified with MMR.
 - Hybrid `source_read`: BM25 plus Ollama embeddings fused with RRF, an on-disk embedding cache, and `npm run retrieval-eval` for hit rate at 1, 3 and 5. See `docs/retrieval.md`.

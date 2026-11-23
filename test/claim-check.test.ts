@@ -70,4 +70,19 @@ describe("claim checks in research_finalize", () => {
 			await rm(cwd, { recursive: true, force: true });
 		}
 	});
+
+	it("warns when declared confidence exceeds the cap set by the weakest finding", async () => {
+		const cwd = await mkdtemp(join(tmpdir(), "pi-grade-"));
+		try {
+			const base = { cwd, slug: "grade-check-run", question: "q", depth: "standard", ledger: ledger(), archiveRoot: "docs/research", report: report("Latency fell 12.5%.") };
+			const high = await writeResearchPackage({ ...base, confidence: 90 });
+			assert.ok(high.warnings.some((w) => w.startsWith("declared confidence 90 exceeds the 40 cap")));
+			assert.ok(high.warnings.some((w) => w.startsWith("very-low evidence:")));
+			assert.equal(high.evidenceGrade.overall, "very-low");
+			const ok = await writeResearchPackage({ ...base, confidence: 35 });
+			assert.ok(!ok.warnings.some((w) => w.startsWith("declared confidence")));
+		} finally {
+			await rm(cwd, { recursive: true, force: true });
+		}
+	});
 });

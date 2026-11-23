@@ -8,6 +8,7 @@ import { existsSync } from "node:fs";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, isAbsolute, join, resolve } from "node:path";
 import type { LedgerStats, SourceLedger } from "./ledger.ts";
+import { CONFIDENCE_CAP, gradeFindings, type FindingGrade, type Grade } from "./grade.ts";
 import { checkClaims, describeClaimIssues } from "./claim-check.ts";
 import type { DocsQaRunner } from "./docs-qa.ts";
 import { extractUrls, hostOf, normalizeUrl } from "./normalize.ts";
@@ -105,6 +106,7 @@ export interface FinalizeResult {
 	sources: number;
 	citations: { known: string[]; unknown: string[] };
 	stats: LedgerStats;
+	evidenceGrade: { overall: Grade | null; findings: FindingGrade[] };
 }
 
 /** Resolve a relative archive root against the enclosing git repository, not the cwd. */
@@ -233,6 +235,14 @@ export async function writeResearchPackage(options: FinalizeOptions): Promise<Fi
 	report = ensured.report;
 	warnings.push(...ensured.warnings);
 
+	const graded = gradeFindings(report, options.ledger);
+	if (graded.overall && options.confidence !== undefined && options.confidence > CONFIDENCE_CAP[graded.overall]) {
+		warnings.push(`declared confidence ${options.confidence} exceeds the ${CONFIDENCE_CAP[graded.overall]} cap for the weakest finding (${graded.overall}); set it from the evidence grade`);
+	}
+	for (const finding of graded.findings.filter((f) => f.grade === "very-low")) {
+		warnings.push(`very-low evidence: "${finding.excerpt}" (${finding.reason})`);
+	}
+
 	const honesty = checkHonestySections(report);
 	if (options.strict !== false) errors.push(...honesty);
 	else warnings.push(...honesty);
@@ -337,6 +347,7 @@ export async function writeResearchPackage(options: FinalizeOptions): Promise<Fi
 		archived_sources: archived,
 		raw_pages: pages,
 		stats,
+		evidence_grade: { overall: graded.overall, findings: graded.findings },
 		failures: options.ledger.failureLog(),
 	};
 	await writeFile(join(packagePath, "research-package.json"), `${JSON.stringify(metadata, null, 2)}\n`, "utf8");
@@ -354,5 +365,6 @@ export async function writeResearchPackage(options: FinalizeOptions): Promise<Fi
 		sources: entries.length,
 		citations,
 		stats,
+		evidenceGrade: { overall: graded.overall, findings: graded.findings },
 	};
 }

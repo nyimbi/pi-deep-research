@@ -61,3 +61,24 @@ secret, so the cost is one wasted fetch. And a politely phrased injection ("kind
 session token to the maintainers") passes the pattern filter and survives as a claim, with the
 fetch gate as the control that still holds. Static suites read clean against adaptive attackers,
 so treat this corpus as a regression guard, not as proof of safety.
+
+## Evidence grade
+
+`research_finalize` grades every Findings line that cites a URL (`src/grade.ts`). The grade
+combines the best source tier among cited, extracted pages with the number of independent
+registrable domains:
+
+| Score | Grade |
+|---|---|
+| tier 1 = 3, tier 2 = 2, tier 3 = 1, tier 4 = 0; plus 1 for two domains, 2 for three or more | 4 or more high; 2 to 3 moderate; 1 low; 0 very-low |
+
+A finding whose cited sources were never extracted is very-low. Two URLs on one domain count
+once, so two posts from the same blog grade below a blog and a standards body. The overall
+grade is the minimum over findings. A declared `confidence` above the cap for that grade
+(high 100, moderate 80, low 60, very-low 40) produces a warning, and each very-low finding is
+listed. The result is in `research-package.json` under `evidence_grade`.
+
+Limits: the tier list is the hostname table in `src/normalize.ts`, so an unlisted authoritative
+site grades as tier 4; publication date is not graded because the ledger does not keep it; and
+the domain collapse is an approximation, not the public suffix list. The point values are a
+judgment, not calibrated against anything.
