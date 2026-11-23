@@ -140,9 +140,7 @@ The script sends every request the page makes, subresources and redirects includ
 Node process, which answers with the same fetch-safety policy as every other fetch
 (`assertFetchableUrlResolved`). A refused request is aborted before it leaves the browser, and
 the count is logged. Each run uses a fresh context: no cookies or storage carried between
-pages, no service workers, no downloads. Not covered: WebSocket connections, which Playwright's
-request routing does not intercept, so run it on hosts where outbound traffic is otherwise
-restricted if that matters.
+pages, no service workers, no downloads. WebSockets are not intercepted by Playwright's request routing, and `route_web_socket` crashed the installed driver, so the page's `WebSocket` constructor is removed in every page and frame. That is best effort: a worker, or a page that recovers the native constructor, is not covered, so run it on hosts where outbound traffic is otherwise restricted if that matters.
 
 ## Domain adapters
 

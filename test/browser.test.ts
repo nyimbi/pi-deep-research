@@ -22,6 +22,14 @@ before(async () => {
 			</script></body></html>`);
 			return;
 		}
+		if (req.url === "/ws-app") {
+			res.writeHead(200, { "content-type": "text/html" });
+			res.end(`<html><body><div id="root"></div><script>
+				document.getElementById("root").innerHTML = "<main><h1>Rendered</h1><p>" + "client rendered words ".repeat(40) + "</p></main>";
+				try { new WebSocket("${base.replace("http", "ws")}/socket"); } catch (e) {}
+			</script></body></html>`);
+			return;
+		}
 		if (req.url === "/app") {
 			res.writeHead(200, { "content-type": "text/html" });
 			res.end(`<html><head><title>App</title></head><body><div id="root"></div><script>
@@ -33,6 +41,10 @@ before(async () => {
 		}
 		res.writeHead(200, { "content-type": "text/plain" });
 		res.end("x");
+	});
+	server.on("upgrade", (req, socket) => {
+		hits.push(`upgrade ${req.url}`);
+		socket.destroy();
 	});
 	await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
 	base = `http://127.0.0.1:${(server.address() as { port: number }).port}`;
@@ -71,5 +83,11 @@ describe("browser provider", { skip: !hasPlaywright, timeout: 120_000 }, () => {
 		const out = await createBrowserProvider(settings, { policy }).extract!(`${base}/app2`);
 		assert.match(out.content, /Rendered/);
 		assert.ok(!hits.includes("/private-api"), `localhost subresource reached the server: ${hits}`);
+	});
+	it("never lets a page open a WebSocket", async () => {
+		hits.length = 0;
+		const out = await createBrowserProvider(settings, { policy }).extract!(`${base}/ws-app`);
+		assert.match(out.content, /Rendered/);
+		assert.ok(!hits.some((h) => h.startsWith("upgrade")), `a WebSocket reached the server: ${hits}`);
 	});
 });

@@ -44,6 +44,9 @@ with sync_playwright() as p:
 			user_agent="Mozilla/5.0 (compatible; PiDeepResearch/1.0)",
 		)
 		context.route("**/*", handle)
+		# route() does not see WebSockets. Best effort: remove the constructor from every page and frame.
+		# A worker or a page that restores the native constructor is not covered.
+		context.add_init_script("window.WebSocket = function () { throw new Error('WebSocket disabled'); }; window.WebSocketStream = undefined;")
 		page = context.new_page()
 		page.goto(url, wait_until="networkidle", timeout=timeout_ms)
 		print(json.dumps({"result": {"html": page.content(), "title": page.title(), "final_url": page.url, "blocked": blocked}}))
