@@ -1,6 +1,6 @@
 # Publication-quality reports
 
-Status: page, passages, colophon, PDF, browser check, calc blocks, mechanism and label lint, exemplars done. Open: accent discipline in charts, claim-level layout polish.
+Status: page, passages, colophon, PDF, browser check, calc blocks, mechanism and label lint, exemplars done. Charts: one accent for the first series, the rest ink tints (Mermaid theme).
 `~/.claude/skills/machine-works/SKILL.md` on 2026-11-23. Nothing is copied from it; the rules are applied to
 reports.
 

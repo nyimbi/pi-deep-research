@@ -32,6 +32,19 @@ export const MERMAID_THEME = {
 		textColor: LIGHT.ink,
 		fontFamily: "Geist, system-ui, sans-serif",
 		fontSize: "13px",
+		// One accent for the focal series, the rest in ink tints: a chart reads one thing first.
+		pie1: LIGHT.accent,
+		pie2: LIGHT.ink,
+		pie3: LIGHT.muted,
+		pie4: LIGHT.soft,
+		pie5: "#8a93a6",
+		pie6: "#b3b9c6",
+		pieOpacity: "1",
+		pieStrokeColor: LIGHT.paper,
+		pieOuterStrokeColor: LIGHT.paper,
+		pieSectionTextColor: LIGHT.paper,
+		pieLegendTextColor: LIGHT.ink,
+		xyChart: { backgroundColor: LIGHT.paper, titleColor: LIGHT.ink, xAxisLabelColor: LIGHT.muted, yAxisLabelColor: LIGHT.muted, xAxisLineColor: LIGHT.soft, yAxisLineColor: LIGHT.soft, plotColorPalette: `${LIGHT.accent},${LIGHT.ink},${LIGHT.muted}` },
 	},
 };
 
