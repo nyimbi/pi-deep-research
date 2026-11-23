@@ -7,6 +7,7 @@ description: "Changelog for pi-deep-research skill"
 ## [Unreleased]
 
 ### Added
+- Finalize writes an evidence graph (finding to source domain, with tier and read status) beside the package.
 - Pie and xychart-beta charts must match rows of a table in the report.
 - Optional mmdc render check at finalize; good diagrams ship as SVG beside their source.
 - Browser rendering removes the page `WebSocket` constructor (best effort; tested against a server that records upgrades).

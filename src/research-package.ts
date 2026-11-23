@@ -13,6 +13,7 @@ import { checkReportAgainstNotes, loadNotes } from "./notes.ts";
 import { CONFIDENCE_CAP, gradeFindings, type FindingGrade, type Grade } from "./grade.ts";
 import { checkClaims, describeClaimIssues } from "./claim-check.ts";
 import { checkDiagrams, mermaidBlocks } from "./diagrams.ts";
+import { evidenceGraph } from "./evidence-graph.ts";
 import type { DiagramRenderer } from "./diagram-render.ts";
 import type { DocsQaRunner } from "./docs-qa.ts";
 import { extractUrls, hostOf, normalizeUrl } from "./normalize.ts";
@@ -276,6 +277,7 @@ export async function writeResearchPackage(options: FinalizeOptions): Promise<Fi
 	if (options.strict !== false) errors.push(...diagramIssues);
 	else warnings.push(...diagramIssues);
 
+	const graph = evidenceGraph(report, options.ledger);
 	const renders: Array<{ index: number; source: string; svg: string }> = [];
 	if (options.renderDiagram) {
 		for (const block of mermaidBlocks(report)) {
@@ -349,6 +351,13 @@ export async function writeResearchPackage(options: FinalizeOptions): Promise<Fi
 		const destination = join(sourcesDir, fileName);
 		if (typeof content === "string") await writeFile(destination, content, "utf8");
 		else await writeFile(destination, content);
+	}
+	if (graph) {
+		await mkdir(join(packagePath, "diagrams"), { recursive: true });
+		await writeFile(join(packagePath, "diagrams", "evidence-graph.mmd"), `${graph}\n`, "utf8");
+		const drawn = options.renderDiagram ? await options.renderDiagram(graph) : undefined;
+		if (drawn?.svg) await writeFile(join(packagePath, "diagrams", "evidence-graph.svg"), drawn.svg, "utf8");
+		else if (drawn?.error) warnings.push(`evidence graph does not render: ${drawn.error}`);
 	}
 	if (renders.length) {
 		await mkdir(join(packagePath, "diagrams"), { recursive: true });

@@ -78,6 +78,11 @@ with no category, a value in another row or a slice no row backs fails a strict 
 figures are covered by the claim check when the row cites a source, so a chart needs no `%% source:` line.
 A table with no citation backs the chart without the figures being checked against any page.
 
+**Evidence graph.** When a Findings line cites sources, finalize writes `diagrams/evidence-graph.mmd` (and an SVG
+when rendering is on): one node per cited finding, one per registrable domain, and an edge labelled with the
+source's tier and whether it was read. It is generated from the ledger, never typed, and it is not appended
+to the report, so the README stays the text the author wrote.
+
 **Render check.** With `diagrams.render` (or `DIAGRAM_RENDER=on`) finalize also renders each block with
 `mmdc` (`src/diagram-render.ts`). A parse error fails a strict run with mmdc's own message, and each good
 block ships as `diagrams/diagram-N.mmd` and `.svg` in the package, so the report reads without a Mermaid

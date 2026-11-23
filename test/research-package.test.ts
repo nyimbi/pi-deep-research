@@ -155,7 +155,7 @@ describe("writeResearchPackage", () => {
 		const root = await cwd();
 		const block = "\n\n```mermaid\nflowchart LR\n  A[Timeout] --> B[Reply]\n```\n";
 		const run = (slug: string, renderDiagram: any, strict = true) =>
-			writeResearchPackage({ cwd: root, slug, question: "What timeout?", depth: "standard", report: REPORT + block, ledger: ledgerWith(), archiveRoot: "docs/research", strict, renderDiagram });
+			writeResearchPackage({ cwd: root, slug, question: "What timeout?", depth: "standard", report: REPORT.replace("observed tail.", "observed tail ([spec](https://example.com/spec)).") + block, ledger: ledgerWith(), archiveRoot: "docs/research", strict, renderDiagram });
 		const bad = await run("rd-bad", async () => ({ error: "Parse error on line 2" }));
 		assert.ok(bad.errors.some((e) => /diagram 1 does not render: Parse error/.test(e)));
 		assert.ok((await run("rd-warn", async () => ({ error: "x" }), false)).warnings.some((w) => /does not render/.test(w)));
@@ -165,6 +165,8 @@ describe("writeResearchPackage", () => {
 		const dir = join(root, "docs/research/rd-good/diagrams");
 		assert.equal(await readFile(join(dir, "diagram-1.svg"), "utf8"), "<svg id=\"ok\"/>");
 		assert.match(await readFile(join(dir, "diagram-1.mmd"), "utf8"), /flowchart LR/);
+		assert.match(await readFile(join(dir, "evidence-graph.mmd"), "utf8"), /example\.com/);
+		assert.equal(await readFile(join(dir, "evidence-graph.svg"), "utf8"), "<svg id=\"ok\"/>");
 	});
 
 	it("fails a cited source that was never extracted, unless strict is off", async () => {
