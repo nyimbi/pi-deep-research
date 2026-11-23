@@ -178,11 +178,9 @@ archive, because a result URL is only a lead until `web_extract` reads it.
 | `edgar` | `SEC_USER_AGENT` (SEC requires contact details in the header) | accession number, filing date, form | live response captured in `test/fixtures/domain/edgar.live.json` |
 | `clinicaltrials` | nothing | NCT id, last update, overall status | live |
 | `pubmed` | nothing; `NCBI_API_KEY` optional | PMID, sort date, publication type | live |
-| `courtlistener` | `COURTLISTENER_TOKEN` | cluster id, date filed, status | documented shape only |
-| `github-code` | `GITHUB_TOKEN` | blob SHA | documented shape only |
-| `gdelt` | nothing; one request per 5 seconds | URL, first-seen date | documented shape only; this host was rate limited when probed |
+| `github-code` | `GITHUB_TOKEN` | blob SHA | live (one read-only query, 2026-11-23; the test fixture is the documented shape) |
 
-A plain-text 200 (GDELT's rate limit) is reported as a rate limit, not an empty result. Patent
+A plain-text 200 is reported as a rate limit, not an empty result. CourtListener and GDELT were removed on 2026-11-23: the first needs a token nobody had, the second answered 429 on every probe. Patent
 search and government statistics are not built; check the current USPTO, FRED and World Bank
 endpoints first.
 

@@ -14,7 +14,7 @@ async function getJson<T>(label: string, fetchImpl: Fetch, url: string, init: Re
 	try {
 		return JSON.parse(text) as T;
 	} catch {
-		// GDELT and others answer a rate limit with a plain-text 200.
+		// Some APIs answer a rate limit with a plain-text 200.
 		throw new Error(`${label} returned a non-JSON body (likely rate limited): ${text.slice(0, 120)}`);
 	}
 }
@@ -101,36 +101,6 @@ export function createClinicalTrialsProvider(fetchImpl: Fetch = globalThis.fetch
 	};
 }
 
-/** CourtListener opinion search. Needs COURTLISTENER_TOKEN. */
-export function createCourtListenerProvider(fetchImpl: Fetch = globalThis.fetch): SearchProvider {
-	return {
-		name: "courtlistener",
-		tier: "cloud",
-		isConfigured: () => Boolean(process.env.COURTLISTENER_TOKEN),
-		async search(req: SearchRequest): Promise<SearchResult[]> {
-			const params = new URLSearchParams({ q: req.query, type: "o", page_size: String(Math.min(req.maxResults, 20)) });
-			const data = await getJson<{ results?: Array<{ caseName?: string; absolute_url?: string; dateFiled?: string; court?: string; docketNumber?: string; status?: string; cluster_id?: number; opinions?: Array<{ snippet?: string }> }> }>(
-				"CourtListener",
-				fetchImpl,
-				`https://www.courtlistener.com/api/rest/v4/search/?${params}`,
-				{ headers: { Authorization: `Token ${process.env.COURTLISTENER_TOKEN}`, Accept: "application/json" }, signal: req.signal },
-			);
-			const out: SearchResult[] = [];
-			for (const r of data.results ?? []) {
-				if (!r.absolute_url || !r.caseName) continue;
-				out.push({
-					title: r.caseName,
-					url: `https://www.courtlistener.com${r.absolute_url}`,
-					snippet: `${r.court ?? "Court"}, docket ${r.docketNumber ?? "unknown"}, filed ${r.dateFiled ?? "unknown"}. ${trim(r.opinions?.[0]?.snippet)}`,
-					publishedDate: r.dateFiled,
-					record: { kind: "court-opinion", id: String(r.cluster_id ?? r.docketNumber ?? r.absolute_url), date: r.dateFiled, status: r.status },
-				});
-			}
-			return out.slice(0, req.maxResults);
-		},
-	};
-}
-
 /** GitHub code search. Needs GITHUB_TOKEN; the endpoint refuses anonymous callers. */
 export function createGithubCodeProvider(fetchImpl: Fetch = globalThis.fetch): SearchProvider {
 	return {
@@ -153,38 +123,6 @@ export function createGithubCodeProvider(fetchImpl: Fetch = globalThis.fetch): S
 					url: item.html_url,
 					snippet: `File ${item.path} in ${item.repository?.full_name ?? "unknown repository"}.`,
 					record: { kind: "code-file", id: item.sha ?? item.html_url },
-				});
-			}
-			return out.slice(0, req.maxResults);
-		},
-	};
-}
-
-/** GDELT DOC 2.0 news article search. No key; one request per 5 seconds, and a limit comes back as plain text. */
-export function createGdeltProvider(fetchImpl: Fetch = globalThis.fetch): SearchProvider {
-	return {
-		name: "gdelt",
-		tier: "cloud",
-		isConfigured: () => true,
-		async search(req: SearchRequest): Promise<SearchResult[]> {
-			const params = new URLSearchParams({ query: req.query, mode: "artlist", format: "json", maxrecords: String(Math.min(req.maxResults, 50)), sort: "datedesc" });
-			if (req.freshnessDays) params.set("timespan", `${req.freshnessDays}d`);
-			const data = await getJson<{ articles?: Array<{ url?: string; title?: string; seendate?: string; domain?: string; language?: string; sourcecountry?: string }> }>(
-				"GDELT",
-				fetchImpl,
-				`https://api.gdeltproject.org/api/v2/doc/doc?${params}`,
-				{ headers: { Accept: "application/json" }, signal: req.signal },
-			);
-			const out: SearchResult[] = [];
-			for (const a of data.articles ?? []) {
-				if (!a.url || !a.title) continue;
-				const d = a.seendate && /^\d{8}T\d{6}Z$/.test(a.seendate) ? `${a.seendate.slice(0, 4)}-${a.seendate.slice(4, 6)}-${a.seendate.slice(6, 8)}` : undefined;
-				out.push({
-					title: a.title,
-					url: a.url,
-					snippet: `${a.domain ?? "unknown outlet"}${a.sourcecountry ? ` (${a.sourcecountry})` : ""}${a.language ? `, ${a.language}` : ""}, first seen ${d ?? "unknown"}.`,
-					publishedDate: d,
-					record: { kind: "news-article", id: a.url, date: d },
 				});
 			}
 			return out.slice(0, req.maxResults);

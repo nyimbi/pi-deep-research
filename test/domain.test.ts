@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { afterEach, describe, it } from "node:test";
-import { createClinicalTrialsProvider, createCourtListenerProvider, createEdgarProvider, createGdeltProvider, createGithubCodeProvider, createPubmedProvider } from "../src/native/domain.ts";
+import { createClinicalTrialsProvider, createEdgarProvider, createGithubCodeProvider, createPubmedProvider } from "../src/native/domain.ts";
 
 const fx = (name: string) => JSON.parse(readFileSync(new URL(`./fixtures/domain/${name}`, import.meta.url), "utf8"));
 const seen: Array<{ url: string; headers: Record<string, string> }> = [];
@@ -16,7 +16,7 @@ const serve = (...bodies: unknown[]) => {
 const req = { query: "q", maxResults: 5 };
 afterEach(() => {
 	seen.length = 0;
-	for (const k of ["SEC_USER_AGENT", "COURTLISTENER_TOKEN", "GITHUB_TOKEN"]) delete process.env[k];
+	for (const k of ["SEC_USER_AGENT", "GITHUB_TOKEN"]) delete process.env[k];
 });
 
 describe("domain adapters, shapes captured live", () => {
@@ -52,26 +52,13 @@ describe("domain adapters, shapes captured live", () => {
 });
 
 describe("domain adapters, documented shapes only (not live-verified here)", () => {
-	it("GDELT parses seendate and treats a plain-text 200 as a rate limit", async () => {
-		const [a] = await createGdeltProvider(serve(fx("gdelt.documented.json"))).search(req);
-		assert.equal(a.publishedDate, "2026-03-01");
-		assert.equal(a.record?.kind, "news-article");
-		await assert.rejects(createGdeltProvider(serve("Please limit requests to one every 5 seconds")).search(req), /rate limited/);
-	});
-	it("CourtListener and GitHub stay off without their token and send it when set", async () => {
-		const court = createCourtListenerProvider(serve(fx("courtlistener.documented.json")));
+	it("GitHub stays off without its token and sends it when set", async () => {
 		const gh = createGithubCodeProvider(serve(fx("github.documented.json")));
-		assert.equal(court.isConfigured(), false);
 		assert.equal(gh.isConfigured(), false);
-		process.env.COURTLISTENER_TOKEN = "ct";
 		process.env.GITHUB_TOKEN = "gt";
-		const [o] = await court.search(req);
 		const [c] = await gh.search(req);
-		assert.equal(o.url, "https://www.courtlistener.com/opinion/1/doe-v-roe/");
-		assert.equal(o.record?.status, "Published");
 		assert.equal(c.url, "https://github.com/o/r/blob/main/src/x.ts");
-		assert.equal(seen[0].headers.Authorization, "Token ct");
-		assert.equal(seen[1].headers.Authorization, "Bearer gt");
+		assert.equal(seen[0].headers.Authorization, "Bearer gt");
 	});
 	it("an HTTP error names the service", async () => {
 		const bad = (async () => new Response("no", { status: 403 })) as unknown as typeof fetch;

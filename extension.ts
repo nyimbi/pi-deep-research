@@ -30,9 +30,7 @@ import {
 	createTavilyProvider,
 	createBrowserProvider,
 	createClinicalTrialsProvider,
-	createCourtListenerProvider,
 	createEdgarProvider,
-	createGdeltProvider,
 	createGithubCodeProvider,
 	createPubmedProvider,
 	createDoclingProvider,
@@ -62,7 +60,7 @@ import type { Attempt, SearchResult } from "./src/types.ts";
 
 const ACADEMIC = new Set(["arxiv", "semantic-scholar", "openalex", "crossref", "europe-pmc", "pubmed"]);
 /** Registry adapters, reached only with sources: "domain" or by naming them in the provider list. */
-const DOMAIN = new Set(["edgar", "clinicaltrials", "courtlistener", "github-code", "gdelt"]);
+const DOMAIN = new Set(["edgar", "clinicaltrials", "github-code"]);
 
 function frameContent(content: string, url: string, provider: string): string {
 	const safe = content.replace(/<\/?untrusted_source[^>]*>/gi, "").slice(0, 60_000);
@@ -125,9 +123,7 @@ export default async function (pi: ExtensionAPI) {
 		createPubmedProvider(retryFetch),
 		createEdgarProvider(retryFetch),
 		createClinicalTrialsProvider(retryFetch),
-		createCourtListenerProvider(retryFetch),
 		createGithubCodeProvider(retryFetch),
-		createGdeltProvider(retryFetch),
 	];
 	const { providers: plugins, warnings } = await loadPlugins(
 		providersDir(),

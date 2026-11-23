@@ -39,7 +39,7 @@ Every item below names its local mechanism and its optional cloud fallback. Rule
 
 | Capability | Local mechanism | Cloud fallback |
 |---|---|---|
-| Search | SearXNG instances, arXiv, OpenAlex, Crossref, Europe PMC, EDGAR, ClinicalTrials.gov, GDELT | Tavily, Brave |
+| Search | SearXNG instances, arXiv, OpenAlex, Crossref, Europe PMC, EDGAR, ClinicalTrials.gov | Tavily, Brave |
 | Retrieval | BM25 plus Ollama embeddings, RRF (k = 60), MMR | none needed |
 | HTML extraction | Defuddle plus Readability in Node | Jina |
 | PDF and scans | `pdftotext`, then Docling or Unlimited-OCR on a local server | Tavily, Jina |
@@ -126,8 +126,8 @@ tools, used only for narrow, schema-bound jobs.
 
 ### Phase 5: domain adapters (S each, add by need)
 
-EDGAR (declare a User-Agent), ClinicalTrials.gov v2, CourtListener (token), GitHub code
-search (token), GDELT DOC 2.0, PubMed only if MeSH or date sort is needed beyond Europe PMC.
+EDGAR (declare a User-Agent), ClinicalTrials.gov v2, GitHub code
+search (token), PubMed only if MeSH or date sort is needed beyond Europe PMC.
 Each returns a typed record (id, date, status, url) and goes through the SSRF and archive
 path. Patent search and government statistics are unverified: check the current USPTO
 endpoint and FRED and World Bank before building. (C48 to C52)
@@ -188,12 +188,12 @@ not closed, and each waits on something outside the code:
 
 | Item | State | Needs |
 |---|---|---|
-| CourtListener adapter | Documented response shape only. Anonymous search returns 401. | A `COURTLISTENER_TOKEN` |
-| GDELT adapter | Documented shape only. Every probe from this host returned 429, including after a 28 second wait. | Removal, or a network where it answers. Removal is recommended: nothing depends on it. |
 | Worker quality versus a single agent | Unmeasured. One worker answered a stub question in 14 s and used its tool; that is all that was run. | A graded question set with known answers and several runs per arm. A quick run on a 9B model would be noise. |
 | Phase 3.7 diagrams (Mermaid check, render, charts, lint, evidence graph) | Built and tested before approval. | A keep or revert decision. |
 | Playwright WebSocket interception | The page's `WebSocket` constructor is removed. A worker or a page that restores the native one is not covered. | Not planned. |
 | `sources/` (129 MB of PDFs, untracked, public repo), `.github/workflows`, the zvec index job | Untouched. | The owner's decision. |
+
+CourtListener and GDELT were removed on 2026-11-23 and are no longer part of the roadmap.
 
 Verified against live services: EDGAR, ClinicalTrials.gov, PubMed, GitHub code search, and the llama.cpp OCR
 backend (see `docs/research/unlimited-ocr-llama-cpp/`).
