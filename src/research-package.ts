@@ -12,7 +12,7 @@ import type { EntailmentReport } from "./entailment.ts";
 import { checkReportAgainstNotes, loadNotes } from "./notes.ts";
 import { CONFIDENCE_CAP, gradeFindings, type FindingGrade, type Grade } from "./grade.ts";
 import { checkClaims, describeClaimIssues } from "./claim-check.ts";
-import { checkDiagrams, embedRenderedDiagrams, lintDiagrams, mermaidBlocks } from "./diagrams.ts";
+import { captionOf, checkDiagrams, embedRenderedDiagrams, lintDiagrams, mermaidBlocks } from "./diagrams.ts";
 import { evidenceGraph } from "./evidence-graph.ts";
 import type { DiagramRenderer } from "./diagram-render.ts";
 import type { DocsQaRunner } from "./docs-qa.ts";
@@ -100,6 +100,10 @@ export interface FinalizeOptions {
 	/** Local-model claim-to-passage check; omit to skip. Findings are warnings, never errors. */
 	/** Renders each Mermaid block; a render error fails a strict run and the SVG is written to diagrams/. Omit to skip. */
 	renderDiagram?: DiagramRenderer;
+	/** Draws a block in the editorial style (an SVG and a standalone page), or returns null so Mermaid's drawing stands. */
+	styleDiagram?: (source: string, ctx: { index: number; caption: string | undefined }) => { svg: string; html: string } | { refused: string };
+	/** Runs the diagram-design skill's checks on a written page; each string is a finding, reported as a warning. */
+	designGates?: (htmlPath: string) => Promise<string[]>;
 	entailment?: (report: string) => Promise<EntailmentReport>;
 	now?: Date;
 }
@@ -279,12 +283,19 @@ export async function writeResearchPackage(options: FinalizeOptions): Promise<Fi
 	else warnings.push(...diagramIssues);
 
 	const graph = evidenceGraph(report, options.ledger);
-	const renders: Array<{ index: number; source: string; svg: string }> = [];
-	if (options.renderDiagram) {
-		for (const block of mermaidBlocks(report)) {
-			const out = await options.renderDiagram(block.source);
-			if (out.svg) renders.push({ index: block.index, source: block.source, svg: out.svg });
-			else (options.strict !== false && !out.unavailable ? errors : warnings).push(`diagram ${block.index} does not render: ${out.error ?? "no output"}`);
+	const renders: Array<{ index: number; source: string; svg: string; html?: string }> = [];
+	for (const block of mermaidBlocks(report)) {
+		const out = options.renderDiagram ? await options.renderDiagram(block.source) : undefined;
+		const styled = options.styleDiagram?.(block.source, { index: block.index, caption: captionOf(report, block) });
+		if (out && !out.svg && !out.unavailable) {
+			(options.strict !== false ? errors : warnings).push(`diagram ${block.index} does not render: ${out.error ?? "no output"}`);
+			continue;
+		}
+		if (styled && "svg" in styled) renders.push({ index: block.index, source: block.source, svg: styled.svg, html: styled.html });
+		else {
+			if (styled) warnings.push(`diagram ${block.index} is drawn by Mermaid, not in the editorial style: ${styled.refused}`);
+			if (out?.svg) renders.push({ index: block.index, source: block.source, svg: out.svg });
+			else if (out?.unavailable) warnings.push(`diagram ${block.index} does not render: ${out.error ?? "no output"}`);
 		}
 	}
 
@@ -365,6 +376,11 @@ export async function writeResearchPackage(options: FinalizeOptions): Promise<Fi
 		for (const r of renders) {
 			await writeFile(join(packagePath, "diagrams", `diagram-${r.index}.mmd`), r.source, "utf8");
 			await writeFile(join(packagePath, "diagrams", `diagram-${r.index}.svg`), r.svg, "utf8");
+			if (r.html) {
+				const page = join(packagePath, "diagrams", `diagram-${r.index}.html`);
+				await writeFile(page, r.html, "utf8");
+				if (options.designGates) warnings.push(...(await options.designGates(page)));
+			}
 		}
 		await writeFile(join(packagePath, "README.rendered.md"), embedRenderedDiagrams(report, renders.map((r) => r.index)), "utf8");
 	}

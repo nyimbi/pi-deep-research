@@ -190,6 +190,10 @@ plus a detail. Lint warns at those limits. Pick the Mermaid type by what you are
 | A quantity across categories or parts of a whole (backed by a table) | `xychart-beta`, `pie` |
 | What an experience feels like across stages | `journey` |
 
+A `flowchart LR` or `TD` with no subgraphs, decisions or cycles, arrow labels of 14 characters or fewer and nine
+nodes or fewer is drawn in the report's editorial style; anything else is drawn by Mermaid and finalize says
+why. Short labels cost nothing, so prefer them.
+
 ### Comparing options
 
 Draw the difference, not two separate boxes. Put each option in its own subgraph with the same

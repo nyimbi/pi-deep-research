@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { styleForPackage } from "../src/diagram-style.ts";
 import { mkdir, mkdtemp, readFile, readdir, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -171,6 +172,25 @@ describe("writeResearchPackage", () => {
 		assert.match(await readFile(join(dir, "diagram-1.mmd"), "utf8"), /flowchart LR/);
 		assert.match(await readFile(join(dir, "evidence-graph.mmd"), "utf8"), /example\.com/);
 		assert.equal(await readFile(join(dir, "evidence-graph.svg"), "utf8"), "<svg id=\"ok\"/>");
+	});
+
+	it("draws a simple flowchart in the editorial style, and says why when it cannot", async () => {
+		const root = await cwd();
+		const simple = "\n\nThe reply follows the timeout in this path.\n\n```mermaid\nflowchart LR\n  A[Timeout] -->|then| B[Reply]\n```\n";
+		const hard = "\n\nThe reply follows the timeout in this path.\n\n```mermaid\nsequenceDiagram\n  A->>B: hello\n```\n";
+		const run = (slug: string, tail: string, gates?: (p: string) => Promise<string[]>) =>
+			writeResearchPackage({ cwd: root, slug, question: "What timeout?", depth: "standard", report: REPORT.replace("observed tail.", "observed tail ([spec](https://example.com/spec)).") + tail, ledger: ledgerWith(), archiveRoot: "docs/research", renderDiagram: async () => ({ svg: "<svg id=\"mmdc\"/>" }), styleDiagram: styleForPackage, designGates: gates });
+		const { readFile } = await import("node:fs/promises");
+		const ok = await run("ed-ok", simple, async (page) => [`gate saw ${page.split("/").pop()}`]);
+		const svg = await readFile(join(root, "docs/research/ed-ok/diagrams/diagram-1.svg"), "utf8");
+		assert.match(svg, /aria-labelledby="diagram-1-title/);
+		assert.ok(!svg.includes("mmdc"), "the editorial drawing replaces Mermaid's");
+		assert.match(await readFile(join(root, "docs/research/ed-ok/diagrams/diagram-1.html"), "utf8"), /Diagram Design/);
+		assert.ok(ok.warnings.includes("gate saw diagram-1.html"), "the skill's gates run on the written page");
+		const fallback = await run("ed-hard", hard);
+		assert.match(await readFile(join(root, "docs/research/ed-hard/diagrams/diagram-1.svg"), "utf8"), /id="mmdc"/);
+		assert.ok(fallback.warnings.some((w) => /diagram 1 is drawn by Mermaid, not in the editorial style: not a flowchart/.test(w)));
+		await assert.rejects(readFile(join(root, "docs/research/ed-hard/diagrams/diagram-1.html"), "utf8"));
 	});
 
 	it("fails a cited source that was never extracted, unless strict is off", async () => {

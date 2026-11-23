@@ -23,12 +23,25 @@ pi-deep-research?
 
 - **Calling the skill from the pipeline.** Skills are Claude Code instructions; the Pi extension has no Skill
   tool and the skill needs a model to draw. Not possible, not just inconvenient.
-- **Its visual system** (editorial palette, Instrument Serif and Geist, hand-placed orthogonal connectors).
-  That is for standalone pages. Our diagrams are Mermaid in a Markdown report, rendered by `mmdc`, and the skill
-  names reproducing Mermaid's layout as an anti-pattern. The two do not merge; a page is a separate redraw.
 - **Auto-redrawing every report.** A redraw is a model task whose output the ledger gates cannot read, so it
   would put unchecked figures in front of the reader. It stays a manual step.
-- **Its geometry verifiers.** They check SVG the skill drew; they say nothing about `mmdc` output.
+
+## Update: aesthetics, tooling and templates adopted
+
+The owner asked for the skill's aesthetics, tooling and templates, so `src/diagram-style.ts` now draws simple
+flowcharts itself (see `docs/evidence-ledger.md`, "Editorial style"). Decisions:
+
+- **Draw our own, do not convert Mermaid's output.** The skill names reproducing Mermaid's layout as an
+  anti-pattern, and `mmdc` SVG cannot satisfy its connector rules. So a small layered layout draws the diagram
+  and declines (falls back to themed Mermaid) when it cannot keep the rules. Covers `flowchart LR` and `TD`.
+- **Tokens and page shape copied by value, files not copied.** The palette hex values and the page structure
+  are reproduced in code. The skill's templates, references and scripts are not vendored, because its licence
+  is not stated in the bundle; the gates call the installed skill at its path and do nothing if it is absent.
+- **Its tooling is the gate.** `self_check.py` and `verify-geometry.py` run on every editorial page. Both pass on
+  the drawer's output; both fail on a planted diagonal connector and a removed accessible name (tested).
+- **Still not covered:** the other 44 diagram types, subgraphs and decisions (so the report template's comparison
+  skeleton falls back to themed Mermaid), cycles, crossing hops, and a dark variant (the tokens exist, nothing
+  selects them).
 
 ## Measured
 

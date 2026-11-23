@@ -86,6 +86,10 @@ export interface DiagramSettings {
 	render: boolean;
 	mmdc: string;
 	timeoutMs: number;
+	/** `editorial` draws simple flowcharts in the diagram-design skill's style and falls back to Mermaid's own drawing for anything else; `mermaid` always uses Mermaid's. */
+	style: "editorial" | "mermaid";
+	/** Where the diagram-design skill is installed. Its self_check.py and verify-geometry.py gate every editorial page when present. */
+	designSkillDir: string;
 }
 
 export interface BrowserSettings {
@@ -187,7 +191,7 @@ export const DEFAULT_SETTINGS: ResearchSettings = {
 	llm: { model: "", timeoutMs: 120_000 },
 	workers: { enabled: true, concurrency: 2, timeoutMs: 600_000 },
 	browser: { enabled: false, python: "python3", timeoutMs: 45_000 },
-	diagrams: { render: true, mmdc: "mmdc", timeoutMs: 60_000 },
+	diagrams: { render: true, mmdc: "mmdc", timeoutMs: 60_000, style: "editorial", designSkillDir: join(homedir(), ".claude", "skills", "diagram-design") },
 	docling: { enabled: false, command: "docling", device: "cpu", vlmModel: "", ocr: true, timeoutMs: 300_000 },
 	local: { enabled: true, minWords: 80, minCharsPerPage: 200, pdftotext: "pdftotext", maxPages: 200 },
 	uocr: {
@@ -368,6 +372,12 @@ export async function loadSettings(options: LoadSettingsOptions = {}): Promise<R
 			render: bool(env.DIAGRAM_RENDER === "on" ? true : env.DIAGRAM_RENDER === "off" ? false : diagramsRaw.render, DEFAULT_SETTINGS.diagrams.render, "diagrams.render"),
 			mmdc: text(diagramsRaw.mmdc, DEFAULT_SETTINGS.diagrams.mmdc, "diagrams.mmdc"),
 			timeoutMs: number(diagramsRaw.timeout_ms, DEFAULT_SETTINGS.diagrams.timeoutMs, "diagrams.timeout_ms"),
+			style: ((): "editorial" | "mermaid" => {
+				const value = (env.DIAGRAM_STYLE ?? text(diagramsRaw.style, DEFAULT_SETTINGS.diagrams.style, "diagrams.style")).trim();
+				if (value !== "editorial" && value !== "mermaid") throw new Error(`diagrams.style must be "editorial" or "mermaid", got "${value}"`);
+				return value;
+			})(),
+			designSkillDir: text(diagramsRaw.design_skill_dir, DEFAULT_SETTINGS.diagrams.designSkillDir, "diagrams.design_skill_dir"),
 		},
 		browser: {
 			enabled: bool(env.BROWSER_RENDER === "on" ? true : browserRaw.enabled, DEFAULT_SETTINGS.browser.enabled, "browser.enabled"),

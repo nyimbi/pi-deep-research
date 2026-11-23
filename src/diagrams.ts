@@ -143,7 +143,7 @@ function proseLine(line: string | undefined): boolean {
 	return !/^(?:#|```|\||<!--)/.test(text) && text.split(/\s+/).length >= 5;
 }
 
-function captionOf(report: string, block: DiagramBlock): string | undefined {
+export function captionOf(report: string, block: DiagramBlock): string | undefined {
 	const lines = (t: string) => t.split("\n").map((l) => l.trim()).filter(Boolean);
 	const before = lines(report.slice(0, block.start)).at(-1);
 	const after = lines(report.slice(block.end))[0];

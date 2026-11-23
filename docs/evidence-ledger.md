@@ -95,8 +95,26 @@ When diagrams render, the package also gets `README.rendered.md`: the report wit
 report that the gates checked.
 The image alt text is the diagram's caption sentence.
 
-**Publishing a diagram as a page.** The `diagram-design` skill redraws a diagram as an editorial, self-contained
-HTML page with inline SVG; it does not convert Mermaid. It is a Claude Code skill, so it runs after finalize,
+**Editorial style (diagram-design).** `diagrams.style: editorial` (the default; `DIAGRAM_STYLE=mermaid` turns it
+off) draws each simple flowchart itself in the `diagram-design` skill's style: its paper, ink and accent tokens,
+6px-radius boxes with no shadows, one focal node (the hub, when it has three or more connections), right-angle
+connectors with r=8 elbows, one port per connector, all-caps arrow labels on a mask 6 to 10px above the line, a
+legend strip, and an accessible `<title>` and `<desc>` taken from the caption sentence. Each drawn diagram is
+written as `diagrams/diagram-N.svg` and a standalone page `diagrams/diagram-N.html` in the skill's page shape.
+
+It draws what it can draw correctly: `flowchart LR` or `TD`, up to 9 nodes and 12 arrows, no subgraphs, decisions
+or cycles, labels of 14 characters or fewer, and a route for every edge that avoids every other box. Anything else
+is drawn by Mermaid, themed with the same tokens, and finalize warns with the reason, for example "is drawn by
+Mermaid, not in the editorial style: label over 14 characters". Shorten the label or drop the subgraph and it
+is drawn in style on the next run.
+
+When the skill is installed (`diagrams.design_skill_dir`, default `~/.claude/skills/diagram-design`), finalize also
+runs its `self_check.py` (accessible-SVG and page contract) and `verify-geometry.py` (the six connector rules) on
+every editorial page and reports findings as warnings. The skill itself is not copied into this repository.
+
+**Publishing a diagram as a page.** The editorial pages above are already standalone. For a diagram the drawer
+declines, or for any of the skill's other 44 types, the `diagram-design` skill itself redraws it as an editorial,
+self-contained HTML page with inline SVG; it does not convert Mermaid. It is a Claude Code skill, so it runs after finalize,
 not inside the Pi extension. Run `python3 ~/.claude/skills/diagram-design/scripts/mermaid_extract.py <package>/README.md`
 to get each diagram's nodes, edges and budget flags, redraw from that, and carry the `%% source:` URL into the
 drawing's `<desc>`. The redrawn page is not checked by the ledger gates; only the Mermaid it came from is, so a

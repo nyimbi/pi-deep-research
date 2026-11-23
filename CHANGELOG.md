@@ -10,6 +10,7 @@ description: "Changelog for pi-deep-research skill"
 - Diagram rendering at finalize is on by default; a missing mmdc warns instead of failing.
 
 ### Added
+- Editorial diagram style: simple flowcharts are drawn in the diagram-design skill's aesthetic (tokens, focal accent, orthogonal connectors, masked labels, legend, accessible title and desc) and written as `diagrams/diagram-N.svg` plus a standalone `.html` page, checked with the skill's `self_check.py` and `verify-geometry.py` when installed. Anything else falls back to Mermaid, themed with the same tokens, with a warning that says why. `diagrams.style` or `DIAGRAM_STYLE=mermaid` turns it off.
 - Diagram lint now also warns past 9 nodes or 12 arrows (the diagram-design budget) and on a repeated diagram; rendered packages get `README.rendered.md` with image links, captioned, for viewers without Mermaid. The report template says how to choose a diagram type.
 - Diagram lint (captions, labelled arrows, comparison diagram) as finalize warnings, and a comparison skeleton in the report template.
 - Finalize writes an evidence graph (finding to source domain, with tier and read status) beside the package.

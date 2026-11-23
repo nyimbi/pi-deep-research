@@ -81,3 +81,18 @@ describe("unlimited_ocr settings", () => {
 		assert.equal(on.uocr.cropMode, false);
 	});
 });
+
+describe("diagram style settings", () => {
+	it("defaults to the editorial style with the skill in ~/.claude, and reads config and env", async () => {
+		const d = (await loadSettings({ env: {}, readFileImpl: async () => "{}" })).diagrams;
+		assert.equal(d.style, "editorial");
+		assert.match(d.designSkillDir, /\.claude\/skills\/diagram-design$/);
+		const c = (await loadSettings({ env: {}, readFileImpl: async () => JSON.stringify({ diagrams: { style: "mermaid", design_skill_dir: "/opt/dd" } }) })).diagrams;
+		assert.equal(c.style, "mermaid");
+		assert.equal(c.designSkillDir, "/opt/dd");
+		assert.equal((await loadSettings({ env: { DIAGRAM_STYLE: "mermaid" }, readFileImpl: async () => "{}" })).diagrams.style, "mermaid");
+	});
+	it("rejects an unknown style instead of guessing", async () => {
+		await assert.rejects(loadSettings({ env: { DIAGRAM_STYLE: "fancy" }, readFileImpl: async () => "{}" }), /editorial.*mermaid/);
+	});
+});
