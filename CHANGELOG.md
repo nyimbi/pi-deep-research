@@ -7,6 +7,7 @@ description: "Changelog for pi-deep-research skill"
 ## [Unreleased]
 
 ### Added
+- Search results are freshness-filtered on `publishedDate`, deduplicated by simhash and diversified with MMR.
 - Hybrid `source_read`: BM25 plus Ollama embeddings fused with RRF, an on-disk embedding cache, and `npm run retrieval-eval` for hit rate at 1, 3 and 5. See `docs/retrieval.md`.
 - Required `## Scope` and `## Contradictions` sections; `## Gaps` must name a real limit.
 - Typed ledger URL statuses (`payment_required`, `robots_blocked`, `archived`, `duplicate`); the first two are never refetched. Stats report `citationReturnRate`.

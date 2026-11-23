@@ -1,4 +1,5 @@
 import type { SourceLedger } from "./ledger.ts";
+import { refineResults } from "./dedupe.ts";
 import { mergeResults, normalizeUrl } from "./normalize.ts";
 import { HttpStatusError, type JsonCache, type ProviderBreaker, type UrlPolicy } from "./runtime.ts";
 import { assertFetchableUrlResolved } from "./runtime.ts";
@@ -305,7 +306,7 @@ export async function chainBatchSearch(
 			failures[query] = outcome.message;
 		} else {
 			used.add(outcome.provider);
-			results[query] = outcome.results;
+			results[query] = refineResults(outcome.results, { maxResults: opts.maxResults, freshnessDays: opts.freshnessDays });
 		}
 	});
 	return { results, providers: [...used], failures };
