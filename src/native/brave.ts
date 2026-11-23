@@ -15,6 +15,10 @@ export function createBraveProvider(fetchImpl: typeof fetch = globalThis.fetch):
 			if (!apiKey) throw new Error("BRAVE_API_KEY not set");
 
 			const params = new URLSearchParams({ q: req.query, count: String(req.maxResults) });
+			if (req.freshnessDays && req.freshnessDays > 0) {
+				const days = req.freshnessDays;
+				params.set("freshness", days <= 1 ? "pd" : days <= 7 ? "pw" : days <= 31 ? "pm" : "py");
+			}
 			const resp = await fetchImpl(`https://api.search.brave.com/res/v1/web/search?${params}`, {
 				headers: { Accept: "application/json", "Accept-Encoding": "gzip", "X-Subscription-Token": apiKey },
 				signal: req.signal,

@@ -1,3 +1,9 @@
+export { createCrossrefProvider, createEuropePmcProvider, createOpenAlexProvider } from "./academic.ts";
 export { createAgentReachProvider } from "./agent-reach.ts";
+export { createArxivProvider } from "./arxiv.ts";
 export { createBraveProvider } from "./brave.ts";
+export { createJinaProvider } from "./jina.ts";
+export { createOllamaProvider } from "./ollama.ts";
+export { createSemanticScholarProvider } from "./semantic-scholar.ts";
+export { createSearxngProvider } from "./searxng.ts";
 export { createTavilyProvider } from "./tavily.ts";

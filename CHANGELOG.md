@@ -4,6 +4,37 @@ description: "Changelog for pi-deep-research skill"
 
 # Changelog
 
+## [0.5.0] - 2026-11-23
+
+### Added
+- Evidence ledger for every search and extraction, with normalized URLs,
+  providers, queries, timestamps, tiers, content hashes and a query log.
+- `research_finalize` writes `docs/research/<slug>/`: README, archived sources,
+  SHA-256 index, metadata and ledger; citation validation fails on a URL the
+  tools never returned.
+- Raw page/document capture at extraction time, archived beside the extracted
+  Markdown as a second index row (HTML, PDF, JSON, XML or text).
+- Native providers: SearXNG, Ollama web search, Jina Reader (extraction),
+  arXiv, Semantic Scholar, OpenAlex, Crossref and Europe PMC.
+- Retry with exponential backoff and Retry-After, a disk cache for searches and
+  extractions, a per-provider circuit breaker, configurable timeouts, and
+  per-run search/extract budgets.
+- URL safety policy: scheme, credentials, ports, loopback/private IPs and DNS
+  resolution checks; extracted text is framed as untrusted data.
+- `sources: "academic"` and `mode: "merge"` on `web_search`.
+- `references/claude-research-alignment.md`, aligning the workflow with the
+  Claude scientific-research skill's paper-lookup and literature-review method.
+- Tests: 134, covering the ledger, package writer, providers, retries, cache,
+  breaker, URL policy, merge and settings.
+
+### Changed
+- `research_checkpoint` computes unique sources from the ledger; the model's
+  `total_sources` is reported but not trusted.
+- `web_extract` accepts up to five URLs and wraps content in
+  `<untrusted_source>`.
+- Search providers receive API-side domain and freshness filters where the
+  provider supports them.
+
 ## [Unreleased]
 
 ### Fixed

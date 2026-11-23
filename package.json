@@ -1,7 +1,7 @@
 {
   "name": "pi-deep-research",
-  "version": "0.4.1",
-  "description": "Deep research skill for pi — structured search, reflection, and analysis.",
+  "version": "0.5.0",
+  "description": "Deep research skill for pi \u2014 structured search, reflection, and analysis.",
   "keywords": [
     "pi-package",
     "research",

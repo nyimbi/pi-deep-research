@@ -117,6 +117,19 @@ For each contradiction:
 ### Not Recommended
 [What to avoid and why — tied to specific evidence, not just opinion]
 
+## Search strategy and screening
+
+Required for a `literature` review or any systematic search. Omit for a quick
+factual question.
+
+- **Databases**: at least three, with the provider that served each
+- **Queries**: the exact strings, and the date each was run (the ledger has
+  provider, query, status, result count and timestamp)
+- **Inclusion criteria**: 
+- **Exclusion criteria**: 
+- **Counts**: identified N, screened N, full-text N, included N
+- **Limitations**: preprints included? one database only? date range? language?
+
 ## Methodology
 
 - **Depth**: [quick|standard|deep|exhaustive]
@@ -127,6 +140,11 @@ For each contradiction:
 - **Key challenges**: [brief note on any difficulties encountered]
 
 ## Sources
+
+The finalizer generates `sources/INDEX.md` from the evidence ledger and
+archives each extracted source with a SHA-256. Cite papers by DOI, arXiv ID or
+PMID where available, and pin a line or section when the extracted text exposes
+one. Do not hand-write hashes; `research_finalize` computes them.
 
 | # | Title | URL | Date | Credibility |
 |---|-------|-----|------|:-----------:|

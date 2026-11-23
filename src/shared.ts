@@ -51,7 +51,11 @@ export function pickMeta(meta: Record<string, unknown> | undefined, keys: string
 }
 
 /** Terminal extract fallback: plain fetch + regex stripping (unchanged behavior from v0.1.6). */
-export async function extractWithFetch(url: string, fetchImpl: typeof fetch = globalThis.fetch): Promise<ExtractResult> {
+export async function extractWithFetch(
+	url: string,
+	fetchImpl: typeof fetch = globalThis.fetch,
+	options: { maxBytes?: number } = {},
+): Promise<ExtractResult> {
 	const resp = await fetchImpl(url, {
 		headers: {
 			"User-Agent": "Mozilla/5.0 (compatible; PiDeepResearch/1.0)",
@@ -62,8 +66,15 @@ export async function extractWithFetch(url: string, fetchImpl: typeof fetch = gl
 	});
 
 	if (!resp.ok) throw new Error(`Failed to fetch ${url}: ${resp.status}`);
-
-	const html = await resp.text();
+	const contentType = (resp.headers.get("content-type") ?? "").toLowerCase();
+	if (contentType.includes("application/pdf")) {
+		throw new Error(`PDF extraction requires a provider with document support (Tavily, Jina, or Ollama); basic fetch cannot parse ${url}`);
+	}
+	if (contentType && !/(text\/|html|xml|json)/.test(contentType)) {
+		throw new Error(`basic fetch refused ${contentType} for ${url}`);
+	}
+	const maxBytes = options.maxBytes ?? 2_000_000;
+	const html = (await resp.text()).slice(0, maxBytes);
 
 	const titleMatch = html.match(/<title[^>]*>(.*?)<\/title>/is);
 	const title = titleMatch?.[1]?.replace(/&[^;]+;/g, " ").trim() ?? "";

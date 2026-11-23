@@ -22,6 +22,9 @@ export interface SearchRequest {
 	query: string;
 	maxResults: number;
 	searchDepth?: "basic" | "advanced"; // optional hint; providers may ignore
+	freshnessDays?: number; // optional recency hint; providers may ignore
+	includeDomains?: string[]; // API-side when supported, always filtered client-side too
+	excludeDomains?: string[];
 	signal?: AbortSignal; // chain-enforced timeout
 }
 

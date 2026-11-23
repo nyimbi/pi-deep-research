@@ -6,15 +6,21 @@
 
 Instead of shallow search-and-summarize, it enforces structured methodology: plan → search → reflect → iterate → report. A code-enforced checkpoint gate prevents the agent from rushing to conclusions before gathering enough evidence.
 
-**Search is pluggable.** Built-in providers: [`agent-reach`](https://github.com/Panniantong/Agent-Reach) (Xiaohongshu / Twitter / Reddit / Exa community + web channels via the agent-reach toolchain, zero API keys), [Tavily](https://tavily.com) and [Brave](https://brave.com/search/api/). They compose into a configurable provider chain with automatic failover, and any custom engine — local ones included — drops in as a single `.ts` file. See [Usage → Search Providers](#search-providers).
+**Search is pluggable.** Built-in providers: SearXNG, Ollama web search, Tavily, Brave, [`agent-reach`](https://github.com/Panniantong/Agent-Reach), Jina Reader (extraction), and the academic sources arXiv, Semantic Scholar, OpenAlex, Crossref and Europe PMC. They compose into a configurable provider chain with failover, retries, a circuit breaker, a disk cache, and per-provider timeouts. Any custom engine drops in as a single `.ts` file. See [Usage → Search Providers](#search-providers).
+
+**Evidence is durable.** Every search and extraction is recorded in a session ledger. `research_checkpoint` computes source counts from that ledger instead of trusting the model. `research_finalize` writes `docs/research/<slug>/` with the report, archived source copies, a SHA-256 index, the query log, and citation validation; a report that cites a URL the tools never returned fails. The workflow is aligned with the Claude `scientific-research` skill through `references/claude-research-alignment.md`.
 
 ## Install
 
 ```bash
+# from this checkout
+pi install /absolute/path/to/pi-deep-research
+
+# or from npm
 pi install npm:pi-deep-research
 ```
 
-Then set a search API key (at least one):
+Then set at least one search credential. SearXNG needs only a base URL, and Ollama needs only a running, signed-in daemon.
 
 ```bash
 # Tavily (recommended, free: 1000 req/month)
@@ -66,15 +72,38 @@ Search runs on a pluggable provider chain. Built-in providers:
 
 | Provider | Setup | Channels |
 |----------|-------|----------|
-| `agent-reach` | [agent-reach](https://github.com/Panniantong/Agent-Reach) toolchain (`mcporter` + `opencli` on PATH) — zero API keys | Exa web search (any language), Xiaohongshu (CJK queries), Twitter/X + Reddit (non-CJK queries) |
-| `tavily` | `TAVILY_API_KEY` (free: 1000 req/month) | Web search |
+| `searxng` | `searxng.base_url` or `SEARXNG_BASE_URL`; the instance must allow `format=json` | Metasearch across the instance's engines |
+| `ollama` | A running Ollama daemon signed in to the cloud service; `OLLAMA_HOST`/`OLLAMA_PORT` | Ollama's experimental web search and fetch |
+| `tavily` | `TAVILY_API_KEY` (free: 1000 req/month) | Web search and full-text extract |
 | `brave` | `BRAVE_API_KEY` (free: 2000 req/month) | Web search |
+| `agent-reach` | [agent-reach](https://github.com/Panniantong/Agent-Reach) toolchain (`mcporter` + `opencli` on PATH) | Exa web search, Xiaohongshu, Twitter/X, Reddit |
+| `jina` | Optional `JINA_API_KEY`; extraction only | JavaScript-rendered pages and PDFs |
+| `arxiv` | None | Physics, math and CS preprints |
+| `semantic-scholar` | Optional `SEMANTIC_SCHOLAR_API_KEY` | Papers and citation metadata |
+| `openalex` | Optional `OPENALEX_API_KEY`, `CROSSREF_MAILTO` | Works across all fields |
+| `crossref` | Optional `CROSSREF_MAILTO` (polite pool) | DOI and publisher metadata |
+| `europe-pmc` | None | Biomedical and preprint records |
+
+Set `sources: "academic"` on `web_search` to query the five academic
+providers, or `sources: "all"` with `mode: "merge"` to merge every configured
+provider by URL.
 
 Configure the chain once in a config file, or per-session with an env var:
 
 ```jsonc
 // ~/.pi/agent/pi-deep-research/config.json   (persistent)
-{ "providers": ["agent-reach", "tavily"] }
+{
+  "providers": ["searxng", "ollama", "tavily", "brave", "jina", "agent-reach", "arxiv", "semantic-scholar", "openalex", "crossref", "europe-pmc"],
+  "timeout_ms": 45000,
+  "retries": 2,
+  "cache": { "enabled": true, "search_ttl_seconds": 3600, "extract_ttl_seconds": 604800 },
+  "breaker": { "failures": 3, "cooldown_seconds": 60 },
+  "searxng": { "base_url": "https://search.example.org", "language": "en" },
+  "ollama": { "enabled": true },
+  "archive": { "root": "docs/research", "max_bytes": 5242880 },
+  "safety": { "allow_private_hosts": false, "allowed_ports": [80, 443] },
+  "budget": { "max_searches": 80, "max_extracts": 60 }
+}
 ```
 
 ```bash
@@ -88,6 +117,63 @@ providers with no credentials are skipped. A malformed `config.json` is a
 startup error (never a silent fallback to cloud defaults). Custom engines —
 including local ones like SearXNG or self-hosted Firecrawl — drop in as
 single `.ts` files (details in [Configuration](#search-provider-details)).
+
+## Evidence ledger and finalize
+
+The extension keeps a per-session ledger of every search result and extraction:
+normalized URL, title, provider, query, timestamp, tier, and extracted content
+with a content hash. `research_checkpoint` reads the ledger, so the source count
+in a verdict is measured, not self-reported.
+
+`research_finalize` writes the durable package and is a hard gate:
+
+```
+docs/research/<slug>/
+  README.md              report with Question, Findings, Decisions,
+                         Rejected options, Confidence, Gaps, Sources
+  report.md              the report as written, when it differs
+  sources/INDEX.md       URL, access date, local file, SHA-256, tier
+  sources/<file>.md      archived extracted text
+  sources/<file>.html    raw page copy (or .pdf), a second index row
+  research-package.json  metadata, citation sets, stats
+  ledger.json            every query attempt, source and failure
+```
+
+A relative `archive.root` resolves against the enclosing git repository root,
+so running research from `app/server/` still writes to `docs/research/` at the
+top of that repo. An absolute path is used as written.
+
+Every extraction also captures the raw page or document under the cache
+directory, subject to the same URL policy and size cap. Finalization copies it
+into the package beside the extracted text, so a reader has both the readable
+version and the artefact it came from. A page that blocks capture is reported;
+the extracted text is still archived.
+
+It rejects a report that cites a URL the tools never returned, and warns when
+a cited source was never extracted. Citation checking is the difference between
+a report that looks sourced and one that can be re-read.
+
+## Safety
+
+- Extraction validates the URL before fetching: http and https only, no
+  embedded credentials, an allowed port, no loopback or private address, and a
+  DNS resolution check that rejects a public hostname resolving inside the
+  network. `safety.allow_private_hosts` and `safety.allowed_hosts` are the
+  explicit escape hatches.
+- Extracted text is wrapped in `<untrusted_source>` with a header telling the
+  model it is data, never instructions. Search snippets carry the same warning.
+- Provider failures trip a circuit breaker after `breaker.failures` consecutive
+  failures and recover after the cooldown.
+- Searches and extractions count against `budget.max_searches` and
+  `budget.max_extracts`; the checkpoint reports the budget.
+
+## Claude research skill alignment
+
+`references/claude-research-alignment.md` maps the Claude
+`scientific-research` skill's paper-lookup and literature-review method onto
+this package: at least three databases, recorded queries and dates, screening
+counts, line-pinned citations, response-shape verification, and no uncited
+assertions. Read it before a literature review.
 
 ## Quick Start
 

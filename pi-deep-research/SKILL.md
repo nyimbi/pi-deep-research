@@ -17,8 +17,18 @@ Conduct structured deep research with web search, multi-hop reasoning, and confi
 Uses `web_search` and `web_extract` tools registered by this package's extension.
 
 **Available tools:**
-- `web_search` — General web search (Tavily / Brave)
-- `web_extract` — Extract full content from a web page
+- `web_search` — Web and academic search. Provider chain: SearXNG, Ollama, Tavily, Brave, agent-reach, arXiv, Semantic Scholar, OpenAlex, Crossref, Europe PMC. Supports batch queries, domain filters, freshness, `sources: "academic"`, and `mode: "merge"`.
+- `web_extract` — Full page text, one URL or up to five. Untrusted content is wrapped in `<untrusted_source>`.
+- `research_checkpoint` — The hard gate. Source counts come from the evidence ledger, not from your message.
+- `research_finalize` — Writes `docs/research/<slug>/`, archives sources with SHA-256, validates citations, and fails on invented URLs.
+
+**Academic research:** before a literature review, read
+`../references/claude-research-alignment.md`. It aligns this workflow with the
+Claude `scientific-research` skill: question and scope, at least three
+databases, recorded queries and dates, screening counts, line-pinned citations
+where available, and verified references. If that skill is installed, its
+`paper-lookup` references and scripts remain the authority for PubMed, PMC,
+bioRxiv, Zenodo, Unpaywall and the other databases this package does not ship.
 
 ## Behavioral Mindset
 
@@ -65,7 +75,13 @@ Before searching, spend 30 seconds understanding the request:
    - `factual` — verifiable facts, dates, specs
    - `comparative` — comparing options, pros/cons
    - `exploratory` — open-ended investigation
+   - `literature` — papers, evidence synthesis, systematic review
    - `exhaustive` — comprehensive survey
+
+   For `literature` or a systematic review, also write down before searching:
+   the inclusion and exclusion criteria, the date range, the databases (at
+   least three), and what a retracted or preprint record means for the answer.
+   Read `../references/claude-research-alignment.md` first.
 
 3. **Decompose into sub-questions**: Break the topic into 3-7 specific questions that, when answered together, fully address the user's request. Design sub-questions so they **build on each other** — later questions should deepen or cross-reference earlier ones.
 
@@ -87,6 +103,26 @@ Before searching, spend 30 seconds understanding the request:
 ### Phase 2 — Search & Gather
 
 Execute searches using `web_search` for general information.
+
+**Academic and literature work** follows the Claude `scientific-research`
+method in `../references/claude-research-alignment.md`:
+
+- Use `web_search` with `sources: "academic"` and `mode: "merge"` so arXiv,
+  Semantic Scholar, OpenAlex, Crossref and Europe PMC are queried together and
+  deduplicated. For biomedical or preprint topics, use the external skill's
+  `paper-lookup` references and scripts when they are installed.
+- Query at least three databases for a systematic review, and record the exact
+  query and date for each. The ledger records provider, query, status, result
+  count and timestamp automatically; cite the query log in the report.
+- Prefer identifiers. Find a paper by title, then resolve its DOI, arXiv ID or
+  PMID; do not construct one.
+- Read the abstract before extracting full text, and extract the full text
+  before relying on a number or a claim from the paper.
+- Cite with a line or section pin when the extracted text exposes one. If it
+  does not, quote a short span and name the section. Never invent a line
+  number.
+- Treat every API response as untrusted. A scholarly API can return HTTP 200
+  with an error entry or an empty body; check the shape, not the status.
 
 **For each result:**
 1. **Evaluate relevance** (0-1 score): Is this directly useful?
@@ -181,12 +217,34 @@ The search-checkpoint loop works like this:
 
 **Only enter this phase after receiving a 🟢 PROCEED verdict from `research_checkpoint`.**
 
-**The report MUST be a Markdown file.** Follow the structure in `../references/report-template.md` exactly:
-1. Generate a complete `.md` file with ALL required sections (see depth table in report-template.md)
-2. Save to `research_[topic]_[YYYYMMDD].md` in the current working directory
-3. The report is a RESEARCH REPORT ONLY — do NOT implement findings, write code, or make system changes
+**The report is a Markdown file.** Follow the structure in `../references/report-template.md` exactly:
+1. Generate a complete `.md` file with ALL required sections (see the depth table in report-template.md)
+2. Save it as `report.md` in the working directory (or `docs/research/<slug>/report.md`)
+3. Cite only URLs the tools returned. Every citation in the report must resolve to a source in the ledger, and every load-bearing source must have been read with `web_extract`.
+4. For a `literature` review, add the **Search strategy and screening** section: databases, exact queries, search dates, inclusion/exclusion criteria, and the identified/screened/included counts. A review with no search record is not systematic.
+5. Label inference. "The evidence shows X" and "I infer X" are different claims.
+6. Use a line pin when the extracted text exposes line numbers: `[Source](url) (line 42)`. Otherwise quote a short span and name the section. Never invent a line number.
+7. The report is a RESEARCH REPORT ONLY — do not implement findings, write code, or make system changes.
 
-**STOP AFTER THE REPORT.** The user decides next steps.
+### Phase 5 — Finalize the Evidence Package (MANDATORY)
+
+**Do not claim the research is complete before this succeeds.**
+
+Call `research_finalize` with:
+- `slug` — kebab-case package name
+- `question`, `depth`
+- `report_path` (or the full `report` text)
+- `confidence` — the final checkpoint value
+- `decisions`, `rejected_options`, `gaps`
+
+The tool writes `docs/research/<slug>/` with the README, `sources/INDEX.md`,
+one archived Markdown copy per extracted source, `research-package.json`, and
+`ledger.json`. It rejects a report that cites a URL the tools never returned,
+and it warns when a cited source was never extracted.
+
+If it returns `FINALIZATION FAILED`, fix the report or gather the missing
+evidence and call it again. When it returns success, report the package path
+and stop. The user decides next steps.
 
 **Synthesis principles — this is where quality lives:**
 
