@@ -1,0 +1,45 @@
+{
+ "studies": [
+  {
+   "protocolSection": {
+    "identificationModule": {
+     "nctId": "NCT06333080",
+     "briefTitle": "The Effect of Adherence to Oral Semaglutide on Glycaemic Control in People With Type 2 Diabetes Treated With Metformin"
+    },
+    "statusModule": {
+     "overallStatus": "TERMINATED",
+     "startDateStruct": {
+      "date": "2023-11-01"
+     },
+     "lastUpdatePostDateStruct": {
+      "date": "2026-04-21"
+     }
+    },
+    "descriptionModule": {
+     "briefSummary": "The objective of the trial is to investigate the effect of adherence to oral semaglutide dosing instructions on glycaemic control in people with type 2 diabetes, which are dysregulated on metformin and na\u00efve to second line antidiabetic treatment."
+    }
+   }
+  },
+  {
+   "protocolSection": {
+    "identificationModule": {
+     "nctId": "NCT05829460",
+     "briefTitle": "Primary Prevention and Uterine Preservation in Premenopausal Women With Obesity and Endometrial Hyperplasia"
+    },
+    "statusModule": {
+     "overallStatus": "WITHDRAWN",
+     "startDateStruct": {
+      "date": "2025-03-12"
+     },
+     "lastUpdatePostDateStruct": {
+      "date": "2026-01-12"
+     }
+    },
+    "descriptionModule": {
+     "briefSummary": "The investigators hypothesize that combined treatment with the GLP-1R agonist semaglutide 2.4 mg and levonorgestrel intrauterine device (LNG-IUD), compared to LNG-IUD alone, will result in improved likelihood of uterine preservation, sustained weight loss, improved endometrial and metabolomic response to progestin, and improved quality of life in premenopausal women with endometrial hyperplasia who desire uterine preservation."
+    }
+   }
+  }
+ ],
+ "nextPageToken": "ZVNj7o2Elu8o3lpyU83-vqbumpOQJJxrZ_Gk0A"
+}

@@ -135,3 +135,24 @@ pages, no service workers, no downloads. Not covered: WebSocket connections, whi
 request routing does not intercept, so run it on hosts where outbound traffic is otherwise
 restricted if that matters.
 
+## Domain adapters
+
+`src/native/domain.ts` adds registry searches that return a typed `record` (kind, id, date,
+status) next to the usual title, URL and snippet. Reach them with `web_search` and
+`sources: "domain"`, which queries every configured one in parallel; `pubmed` also joins the
+`academic` set. Fetched pages still go through the provenance gate, SSRF policy, robots check and
+archive, because a result URL is only a lead until `web_extract` reads it.
+
+| Adapter | Needs | Record | Verified |
+|---|---|---|---|
+| `edgar` | `SEC_USER_AGENT` (SEC requires contact details in the header) | accession number, filing date, form | live response captured in `test/fixtures/domain/edgar.live.json` |
+| `clinicaltrials` | nothing | NCT id, last update, overall status | live |
+| `pubmed` | nothing; `NCBI_API_KEY` optional | PMID, sort date, publication type | live |
+| `courtlistener` | `COURTLISTENER_TOKEN` | cluster id, date filed, status | documented shape only |
+| `github-code` | `GITHUB_TOKEN` | blob SHA | documented shape only |
+| `gdelt` | nothing; one request per 5 seconds | URL, first-seen date | documented shape only; this host was rate limited when probed |
+
+A plain-text 200 (GDELT's rate limit) is reported as a rate limit, not an empty result. Patent
+search and government statistics are not built; check the current USPTO, FRED and World Bank
+endpoints first.
+

@@ -3,6 +3,7 @@ export { createAgentReachProvider } from "./agent-reach.ts";
 export { createArxivProvider } from "./arxiv.ts";
 export { createBraveProvider } from "./brave.ts";
 export { createBrowserProvider } from "./browser.ts";
+export { createClinicalTrialsProvider, createCourtListenerProvider, createEdgarProvider, createGdeltProvider, createGithubCodeProvider, createPubmedProvider } from "./domain.ts";
 export { createDoclingProvider } from "./docling.ts";
 export { createJinaProvider } from "./jina.ts";
 export { createLocalExtractProvider } from "./local-extract.ts";

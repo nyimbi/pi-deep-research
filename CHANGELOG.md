@@ -7,6 +7,7 @@ description: "Changelog for pi-deep-research skill"
 ## [Unreleased]
 
 ### Added
+- Domain adapters (EDGAR, ClinicalTrials.gov, PubMed, CourtListener, GitHub code search, GDELT) with typed records, reached through `web_search` with `sources: "domain"`.
 - Local Chromium rendering for JavaScript pages (off by default). Every request, subresources included, goes through the fetch-safety policy; no cookies carry over.
 - Docling provider (CLI, off by default) for PDFs, office files and images, with a VLM preset option.
 - Robots etiquette for fetches the tool chose (user-typed URLs exempt) and a Wayback fallback on 403, 404, 410 and 5xx that records the snapshot timestamp. `safety.respect_robots` and `safety.wayback`.

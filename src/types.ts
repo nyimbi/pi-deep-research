@@ -6,6 +6,15 @@ export interface SearchResult {
 	snippet: string;
 	score?: number;
 	publishedDate?: string;
+	/** Typed identity for a domain record (filing, trial, case, commit hit). */
+	record?: DomainRecord;
+}
+
+export interface DomainRecord {
+	kind: string;
+	id: string;
+	date?: string;
+	status?: string;
 }
 
 export interface ExtractResult {

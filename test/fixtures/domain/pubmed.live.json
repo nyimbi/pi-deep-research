@@ -1,0 +1,246 @@
+{
+ "search": {
+  "header": {
+   "type": "esearch",
+   "version": "0.3"
+  },
+  "esearchresult": {
+   "count": "6169",
+   "retmax": "2",
+   "retstart": "0",
+   "idlist": [
+    "43068476",
+    "43068352"
+   ],
+   "translationset": [
+    {
+     "from": "semaglutide",
+     "to": "\"semaglutide\"[Supplementary Concept] OR \"semaglutide\"[All Fields] OR \"semaglutide\"[MeSH Terms]"
+    }
+   ],
+   "querytranslation": "\"semaglutide\"[Supplementary Concept] OR \"semaglutide\"[All Fields] OR \"semaglutide\"[MeSH Terms]"
+  }
+ },
+ "summary": {
+  "header": {
+   "type": "esummary",
+   "version": "0.3"
+  },
+  "result": {
+   "uids": [
+    "43068476",
+    "43068352"
+   ],
+   "43068476": {
+    "uid": "43068476",
+    "pubdate": "2026 Nov",
+    "epubdate": "",
+    "source": "Endocrinol Diabetes Metab",
+    "authors": [
+     {
+      "name": "Varghese RT",
+      "authtype": "Author",
+      "clusterid": ""
+     },
+     {
+      "name": "Calcaterra G",
+      "authtype": "Author",
+      "clusterid": ""
+     },
+     {
+      "name": "Fanaropoulou NM",
+      "authtype": "Author",
+      "clusterid": ""
+     },
+     {
+      "name": "Varghese DG",
+      "authtype": "Author",
+      "clusterid": ""
+     },
+     {
+      "name": "Iacobellis G",
+      "authtype": "Author",
+      "clusterid": ""
+     }
+    ],
+    "lastauthor": "Iacobellis G",
+    "title": "Amylin-Based Pharmacotherapy for Type 2 Diabetes in the Incretin Era: Mechanisms, Emerging Evidence, and Clinical Implementation.",
+    "sorttitle": "amylin based pharmacotherapy for type 2 diabetes in the incretin era mechanisms emerging evidence and clinical implementation",
+    "volume": "9",
+    "issue": "6",
+    "pages": "",
+    "lang": [
+     "eng"
+    ],
+    "nlmuniqueid": "101732442",
+    "issn": "",
+    "essn": "2398-9238",
+    "pubtype": [
+     "Journal Article",
+     "Review"
+    ],
+    "recordstatus": "PubMed - indexed for MEDLINE",
+    "pubstatus": "4",
+    "articleids": [
+     {
+      "idtype": "pubmed",
+      "idtypen": 1,
+      "value": "43068476"
+     },
+     {
+      "idtype": "doi",
+      "idtypen": 3,
+      "value": "10.1002/edm2.70401"
+     },
+     {
+      "idtype": "pii",
+      "idtypen": 4,
+      "value": "e70401"
+     }
+    ],
+    "history": [
+     {
+      "pubstatus": "revised",
+      "date": "2026/10/29 00:00"
+     },
+     {
+      "pubstatus": "received",
+      "date": "2026/09/29 00:00"
+     },
+     {
+      "pubstatus": "accepted",
+      "date": "2026/11/10 00:00"
+     },
+     {
+      "pubstatus": "medline",
+      "date": "2026/11/22 17:42"
+     },
+     {
+      "pubstatus": "pubmed",
+      "date": "2026/11/22 17:41"
+     },
+     {
+      "pubstatus": "entrez",
+      "date": "2026/11/22 14:22"
+     }
+    ],
+    "references": [],
+    "attributes": [
+     "Has Abstract"
+    ],
+    "pmcrefcount": "",
+    "fulljournalname": "Endocrinology, diabetes & metabolism",
+    "elocationid": "pii: e70401. doi: 10.1002/edm2.70401",
+    "doctype": "citation",
+    "srccontriblist": [],
+    "booktitle": "",
+    "medium": "",
+    "edition": "",
+    "publisherlocation": "",
+    "publishername": "",
+    "srcdate": "",
+    "reportnumber": "",
+    "availablefromurl": "",
+    "locationlabel": "",
+    "doccontriblist": [],
+    "docdate": "",
+    "bookname": "",
+    "chapter": "",
+    "sortpubdate": "2026/11/01 00:00",
+    "sortfirstauthor": "Varghese RT",
+    "vernaculartitle": ""
+   },
+   "43068352": {
+    "uid": "43068352",
+    "pubdate": "2026 Nov 21",
+    "epubdate": "2026 Nov 21",
+    "source": "J Gastrointestin Liver Dis",
+    "authors": [
+     {
+      "name": "Dhali A",
+      "authtype": "Author",
+      "clusterid": ""
+     },
+     {
+      "name": "Maity R",
+      "authtype": "Author",
+      "clusterid": ""
+     },
+     {
+      "name": "Khan F",
+      "authtype": "Author",
+      "clusterid": ""
+     }
+    ],
+    "lastauthor": "Khan F",
+    "title": "Real-world Gastrointestinal, Pancreaticobiliary, Cardiorenal, Metabolic and Nutritional Outcomes of GLP-1 or GIP Receptors Agonists -based Therapy in Chronic Pancreatitis.",
+    "sorttitle": "real world gastrointestinal pancreaticobiliary cardiorenal metabolic and nutritional outcomes of glp 1 or gip receptors agonists based therapy in chronic pancreatitis",
+    "volume": "",
+    "issue": "",
+    "pages": "",
+    "lang": [
+     "eng"
+    ],
+    "nlmuniqueid": "101272825",
+    "issn": "1841-8724",
+    "essn": "1842-1121",
+    "pubtype": [
+     "Journal Article"
+    ],
+    "recordstatus": "PubMed - as supplied by publisher",
+    "pubstatus": "10",
+    "articleids": [
+     {
+      "idtype": "pubmed",
+      "idtypen": 1,
+      "value": "43068352"
+     },
+     {
+      "idtype": "doi",
+      "idtypen": 3,
+      "value": "10.15403/jgld-6964"
+     }
+    ],
+    "history": [
+     {
+      "pubstatus": "medline",
+      "date": "2026/11/22 11:42"
+     },
+     {
+      "pubstatus": "pubmed",
+      "date": "2026/11/22 11:42"
+     },
+     {
+      "pubstatus": "entrez",
+      "date": "2026/11/22 05:52"
+     }
+    ],
+    "references": [],
+    "attributes": [
+     "Has Abstract"
+    ],
+    "pmcrefcount": "",
+    "fulljournalname": "Journal of gastrointestinal and liver diseases : JGLD",
+    "elocationid": "doi: 10.15403/jgld-6964",
+    "doctype": "citation",
+    "srccontriblist": [],
+    "booktitle": "",
+    "medium": "",
+    "edition": "",
+    "publisherlocation": "",
+    "publishername": "",
+    "srcdate": "",
+    "reportnumber": "",
+    "availablefromurl": "",
+    "locationlabel": "",
+    "doccontriblist": [],
+    "docdate": "",
+    "bookname": "",
+    "chapter": "",
+    "sortpubdate": "2026/11/21 00:00",
+    "sortfirstauthor": "Dhali A",
+    "vernaculartitle": ""
+   }
+  }
+ }
+}

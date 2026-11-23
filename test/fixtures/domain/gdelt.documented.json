@@ -1,0 +1,12 @@
+{
+ "articles": [
+  {
+   "url": "https://example.com/a",
+   "title": "Rates rise",
+   "seendate": "20260301T120000Z",
+   "domain": "example.com",
+   "language": "English",
+   "sourcecountry": "United States"
+  }
+ ]
+}

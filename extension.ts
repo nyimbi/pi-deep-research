@@ -29,6 +29,12 @@ import {
 	createSearxngProvider,
 	createTavilyProvider,
 	createBrowserProvider,
+	createClinicalTrialsProvider,
+	createCourtListenerProvider,
+	createEdgarProvider,
+	createGdeltProvider,
+	createGithubCodeProvider,
+	createPubmedProvider,
 	createDoclingProvider,
 	createLocalExtractProvider,
 	createUnlimitedOcrProvider,
@@ -51,7 +57,9 @@ import { join } from "node:path";
 import { loadSettings } from "./src/settings.ts";
 import type { Attempt, SearchResult } from "./src/types.ts";
 
-const ACADEMIC = new Set(["arxiv", "semantic-scholar", "openalex", "crossref", "europe-pmc"]);
+const ACADEMIC = new Set(["arxiv", "semantic-scholar", "openalex", "crossref", "europe-pmc", "pubmed"]);
+/** Registry adapters, reached only with sources: "domain" or by naming them in the provider list. */
+const DOMAIN = new Set(["edgar", "clinicaltrials", "courtlistener", "github-code", "gdelt"]);
 
 function frameContent(content: string, url: string, provider: string): string {
 	const safe = content.replace(/<\/?untrusted_source[^>]*>/gi, "").slice(0, 60_000);
@@ -105,6 +113,12 @@ export default async function (pi: ExtensionAPI) {
 		createOpenAlexProvider(retryFetch),
 		createCrossrefProvider(retryFetch),
 		createEuropePmcProvider(retryFetch),
+		createPubmedProvider(retryFetch),
+		createEdgarProvider(retryFetch),
+		createClinicalTrialsProvider(retryFetch),
+		createCourtListenerProvider(retryFetch),
+		createGithubCodeProvider(retryFetch),
+		createGdeltProvider(retryFetch),
 	];
 	const { providers: plugins, warnings } = await loadPlugins(
 		providersDir(),
@@ -121,8 +135,10 @@ export default async function (pi: ExtensionAPI) {
 	const browser = createBrowserProvider(settings.browser, { policy: settings.safety });
 	const fullChain = resolveChain([...native, ...plugins], settings.providers);
 
-	const chainFor = (sources: "web" | "academic" | "all") => {
-		if (sources === "web") return fullChain.filter((provider) => !ACADEMIC.has(provider.name));
+	const domainChain = native.filter((provider) => DOMAIN.has(provider.name) && provider.isConfigured());
+	const chainFor = (sources: "web" | "academic" | "all" | "domain") => {
+		if (sources === "domain") return domainChain;
+		if (sources === "web") return fullChain.filter((provider) => !ACADEMIC.has(provider.name) && !DOMAIN.has(provider.name));
 		if (sources === "academic") {
 			const academic = fullChain.filter((provider) => ACADEMIC.has(provider.name));
 			return academic.length ? academic : fullChain;
@@ -158,15 +174,15 @@ export default async function (pi: ExtensionAPI) {
 			exclude_domains: Type.Optional(Type.Array(Type.String(), { description: "Never these domains" })),
 			freshness_days: Type.Optional(Type.Number({ description: "Prefer results newer than N days" })),
 			mode: Type.Optional(Type.String({ description: '"fast" (first provider) or "merge" (all providers, deduped)', default: "fast" })),
-			sources: Type.Optional(Type.String({ description: '"web", "academic", or "all"', default: "web" })),
+			sources: Type.Optional(Type.String({ description: '"web", "academic", "all", or "domain" (SEC filings, clinical trials, court opinions, code, news events; each needs its own key or User-Agent where noted in the docs)', default: "web" })),
 		}),
 		async execute(_toolCallId, params) {
 			const budget = ledger.budgetExceeded(settings.budget.maxSearches, settings.budget.maxExtracts);
 			if (budget) return { content: [{ type: "text", text: `Research budget reached: ${budget}. Finalize and report the evidence already collected.` }], details: undefined };
 			const maxResults = Math.min(params.max_results ?? 5, 10);
-			const sources = params.sources === "academic" || params.sources === "all" ? params.sources : "web";
+			const sources = params.sources === "academic" || params.sources === "all" || params.sources === "domain" ? params.sources : "web";
 			const chain = chainFor(sources);
-			const merge = params.mode === "merge" || (settings.merge && params.mode !== "fast");
+			const merge = sources === "domain" || params.mode === "merge" || (settings.merge && params.mode !== "fast");
 			const options = baseOptions({
 				maxResults,
 				searchDepth: params.search_depth === "advanced" ? "advanced" : "basic",

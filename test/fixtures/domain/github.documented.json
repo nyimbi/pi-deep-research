@@ -1,0 +1,13 @@
+{
+ "items": [
+  {
+   "name": "x.ts",
+   "path": "src/x.ts",
+   "sha": "abc",
+   "html_url": "https://github.com/o/r/blob/main/src/x.ts",
+   "repository": {
+    "full_name": "o/r"
+   }
+  }
+ ]
+}
