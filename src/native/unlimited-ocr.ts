@@ -43,11 +43,33 @@ function dataUrl(page: Buffer, mime: string): string {
 }
 
 /** Strip page markers and the model's special tokens; keep one blank-line break per page. */
+/** Block types that describe the page, not its content: running headers, footers and folios. */
+const PAGE_FURNITURE = new Set(["header", "footer", "page_number"]);
+
+/**
+ * Turns the model's page-tagged output into Markdown. Page markers become rules. The layout form
+ * `<BLOCK>type[x1, y1, x2, y2]<FORK>text` (seen from the llama.cpp build) loses its tag and box:
+ * a title becomes a heading at its `<LEVELn>` depth (multi-page requests), `<MERGE>` markers are removed,
+ * page furniture is dropped, every other type keeps its text.
+ */
 export function cleanOcrOutput(raw: string): string {
 	return raw
 		.replace(/<｜[^>]*｜>/g, "")
 		.split("<PAGE>")
-		.map((part) => part.trim())
+		.map((part) =>
+			part
+				.split("\n")
+				.map((line) => {
+					const m = /^\s*<BLOCK>([a-z_]+)(?:<LEVEL(\d)>)?\[[^\]]*\]<FORK>(.*)$/.exec(line);
+					if (!m) return line.replace(/<\/?(?:BLOCK|FORK|MERGE)>/g, "");
+					if (PAGE_FURNITURE.has(m[1])) return "";
+					if (m[1] !== "title") return m[3];
+					return `${"#".repeat(Math.min(Math.max(Number(m[2] ?? 1), 1), 6))} ${m[3].trim()}`;
+				})
+				.join("\n")
+				.replace(/\n{3,}/g, "\n\n")
+				.trim(),
+		)
 		.filter(Boolean)
 		.join("\n\n---\n\n");
 }
@@ -79,6 +101,9 @@ export function createUnlimitedOcrProvider(settings: UocrSettings, deps: UocrDep
 			max_tokens: settings.tokensPerPage * pages.length,
 			temperature: 0,
 			...(settings.backend === "sglang" ? { skip_special_tokens: false, images_config: { crop_mode: settings.cropMode } } : {}),
+			// The patched build returns an empty completion when the whole prompt matches its prompt cache
+			// (verified: a repeated identical request gave 0 characters; with cache_prompt false it gave the page).
+			...(settings.backend === "llama-cpp" ? { cache_prompt: false } : {}),
 		};
 		if (settings.backend === "sglang" && settings.logitProcessor) {
 			body.custom_logit_processor = settings.logitProcessor;

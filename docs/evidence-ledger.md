@@ -214,10 +214,10 @@ alone, because the GGUF's embedded chat template adds `<PAGE>` before each image
 instruction, and omits the SGLang-only fields (`images_config`, logit processor). A unit test pins
 that request shape.
 
-**Not verified end to end.** The GGUF download (Q6_K plus the mmproj, 3.3 GB) is complete, but both
-stock llama.cpp builds on this machine (Homebrew build 12359, Unsloth build 12631) refuse it with
-`unknown model architecture: 'unlimited-ocr2'`. The model card says the files need llama.cpp build
-b11913 plus a community patch from a third-party repository. That patch is unreviewed code, so it was
-not built or run here. Until someone does, treat the `llama-cpp` backend and the layout headers its
-output may carry as untested.
-
+**Verified.** Stock llama.cpp cannot load the GGUF (`unknown model architecture: 'unlimited-ocr2'`), so
+`scripts/build-llama-ocr.sh` builds `b11913` with a reviewed copy of the community patch (archived under
+`docs/research/unlimited-ocr-llama-cpp/`, with the review notes and the fact that its hash differs from the one on
+the model card). Serve it with `-np 1`. On four text PDFs the cleaned output scores token F1 0.984 to 0.998
+against `pdftotext` at about 13 s per page; that says nothing about scans. The server's `<BLOCK>type[box]<FORK>`
+layout tags are turned into headings and text by `cleanOcrOutput`, and the backend sends `cache_prompt: false`
+because a full prompt-cache hit returns an empty completion.

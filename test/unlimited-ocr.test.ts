@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { createServer, type Server } from "node:http";
-import { mkdtemp, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { after, before, describe, it } from "node:test";
@@ -82,6 +82,12 @@ describe("unlimited-ocr", () => {
 		assert.ok(parts.every((p: any) => p.type === "image_url"), "no text part: the chat template adds the instruction");
 		for (const key of ["skip_special_tokens", "images_config", "custom_logit_processor", "custom_params"]) assert.ok(!(key in body), key);
 		assert.equal(body.temperature, 0);
+		assert.equal(body.cache_prompt, false, "the patched build answers an empty string on a full prompt-cache hit");
+	});
+	it("the sglang backend does not send cache_prompt", async () => {
+		bodies.length = 0;
+		await createUnlimitedOcrProvider(settings(), { capture: async () => capture("a.pdf", "application/pdf"), renderPages: pages(1) }).extract!("https://e.example/a.pdf");
+		assert.ok(!("cache_prompt" in bodies[0]));
 	});
 
 	it("omits logit-processor fields when none is configured", async () => {
@@ -131,4 +137,27 @@ describe("unlimited-ocr", () => {
 	it("cleans special tokens", () => {
 		assert.equal(cleanOcrOutput("<PAGE>hi<｜end▁of▁sentence｜>"), "hi");
 	});
+
+	it("cleans the layout form the llama.cpp build emits (captured from a real page)", async () => {
+		const raw = await readFile(new URL("./fixtures/ocr/llama-cpp-page.txt", import.meta.url), "utf8");
+		const out = cleanOcrOutput(raw);
+		assert.match(out, /^# 2\. Related Works/m, "a title block becomes a heading");
+		assert.ok(!out.includes("DEER: A Benchmark"), "the running header is dropped");
+		assert.ok(!/^2$/m.test(out), "the page number is dropped");
+		assert.match(out, /^recently, deep research report benchmarks/m);
+		assert.ok(!/<(?:BLOCK|FORK|PAGE)>|\[\d+, \d+, \d+, \d+\]/.test(out), "no tags or boxes survive");
+	});
+
+	it("cleans the multi-page form: heading depth from LEVEL, MERGE markers and empty image blocks removed", async () => {
+		const raw = await readFile(new URL("./fixtures/ocr/llama-cpp-multipage.txt", import.meta.url), "utf8");
+		const out = cleanOcrOutput(raw);
+		assert.match(out, /^# DEER: A Benchmark/m);
+		assert.match(out, /^## Abstract$/m);
+		assert.match(out, /^## 1\. Introduction$/m);
+		assert.ok(!out.includes("<MERGE>") && !/<(?:BLOCK|FORK|LEVEL\d)>/.test(out));
+		assert.match(out, /^Early evaluations of deep research/m, "cross_text keeps its text");
+		assert.equal(out.split("\n\n---\n\n").length, 2, "two pages");
+		assert.ok(!/\n{3,}/.test(out));
+	});
 });
+

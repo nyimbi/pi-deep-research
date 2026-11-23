@@ -1,0 +1,10 @@
+<PAGE><BLOCK>aside_text[29, 369, 66, 801]<FORK>arXiv:2512.17776v5 [cs.CL] 13 Jul 2026
+<BLOCK>title<LEVEL1>[185, 110, 789, 154]<FORK>DEER: A Benchmark for Evaluating Deep Research Agents on Expert Report Generation
+<BLOCK>title<LEVEL2>[242, 258, 321, 274]<FORK>Abstract
+<BLOCK>title<LEVEL2>[87, 737, 218, 753]<FORK>1. Introduction
+<MERGE>
+<BLOCK>image[510, 258, 882, 484]<FORK>
+<BLOCK>cross_text[496, 735, 890, 903]<FORK>Early evaluations of deep research systems relied primarily on complex reasoning benchmarks (Rein et al., 2024; Mialon et al., 2024; Phan et al., 2025), which indirectly assessed information gather
+<BLOCK>page_number[483, 924, 493, 936]<FORK>1
+<PAGE><BLOCK>header[202, 58, 771, 71]<FORK>DEER: A Benchmark for Evaluating Deep Research Agents on Expert Report Generation
+<BLOCK>append_text[86, 86, 477, 162]<FORK>recently, deep research report benchmarks have emerged to evaluate the quality of generated reports from multiple perspectives, moving beyond simple short-answer-based evaluation (Consult, 2025; Coe

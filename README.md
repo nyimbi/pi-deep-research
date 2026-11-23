@@ -141,6 +141,11 @@ Serve the model with the SGLang build described on the model card (it exposes
 { "unlimited_ocr": { "base_url": "http://127.0.0.1:10000", "max_pages": 40 } }
 ```
 
+To run it on a Mac without SGLang, use the GGUF on a patched llama.cpp: run
+`scripts/build-llama-ocr.sh`, serve with `-np 1`, and set `"backend": "llama-cpp"` (or
+`UOCR_BACKEND=llama-cpp`). The review, measurements and caveats are in
+`docs/research/unlimited-ocr-llama-cpp/`.
+
 `UOCR_BASE_URL` and `UOCR_API_KEY` override the file. Other keys: `model`,
 `dpi`, `pages_per_request`, `tokens_per_page`, `crop_mode`, `pdftoppm`. The card's
 no-repeat logit processor is a serialized Python object; produce it with

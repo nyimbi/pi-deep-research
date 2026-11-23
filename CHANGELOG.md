@@ -16,7 +16,7 @@ description: "Changelog for pi-deep-research skill"
 - Optional mmdc render check at finalize; good diagrams ship as SVG beside their source.
 - Browser rendering removes the page `WebSocket` constructor (best effort; tested against a server that records upgrades).
 - Mermaid diagrams in reports: finalize checks structure and sourced figures (`src/diagrams.ts`); template section added.
-- `unlimited_ocr.backend: llama-cpp` request shape for a patched llama-server. Not verified against a real server: stock llama.cpp cannot load the GGUF.
+- `unlimited_ocr.backend: llama-cpp` against a patched llama-server, built by `scripts/build-llama-ocr.sh` from a reviewed patch and measured (F1 0.984 to 0.998 on four text PDFs). `cleanOcrOutput` handles the layout tags; the backend disables the prompt cache.
 - `research_workers`: up to 8 sub-questions in parallel, each in an isolated agent session; claims survive only if they cite a URL the ledger holds.
 - Domain adapters (EDGAR, ClinicalTrials.gov, PubMed, CourtListener, GitHub code search, GDELT) with typed records, reached through `web_search` with `sources: "domain"`.
 - Local Chromium rendering for JavaScript pages (off by default). Every request, subresources included, goes through the fetch-safety policy; no cookies carry over.
