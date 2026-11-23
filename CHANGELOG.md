@@ -10,6 +10,7 @@ description: "Changelog for pi-deep-research skill"
 - Diagram rendering at finalize is on by default; a missing mmdc warns instead of failing.
 
 ### Added
+- Editorial flowcharts draw decision nodes (`{text}`) as diamonds: at most three exits, every exit labelled, connectors on the outline. Both skins pass the skill's gates.
 - Calc blocks: a fenced `calc` block holds a report's arithmetic. Inputs cite a source and must appear in its archived text, `(derived: name)` sentences must print the computed value, and the page draws the block as a table.
 - Publication warnings: deep reports need a "How it works" section of three explanatory paragraphs, and every diagram label must be a term the prose uses.
 - Exemplar reports under `examples/reports/`, finalized strict in the test suite and checked in headless Chrome.

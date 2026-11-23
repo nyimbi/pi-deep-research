@@ -224,6 +224,8 @@ describe("the diagram-design skill's own checks on every drawn type", { skip: !e
 		"subgraphs with an arrow between": 'flowchart LR\n  subgraph A["Option A"]\n    a1[Client] -->|writes| a2[(Store)]\n  end\n  subgraph B["Option B"]\n    b1[Queue] -->|drains| b2[(Primary)]\n  end\n  a1 -->|enqueues| b1',
 		"a state diagram with a loop": "stateDiagram-v2\n  [*] --> Idle\n  Idle --> Running: start\n  Running --> Idle: stop\n  Running --> Failed: error\n  Failed --> [*]",
 		"a left-to-right state diagram": "stateDiagram-v2\n  direction LR\n  [*] --> Idle\n  Idle --> Running: start\n  Running --> Idle: stop\n  Running --> [*]",
+		"a decision with two labelled exits": "flowchart LR\n  A[Request] --> B[Retry queue]\n  B --> C{Backoff gate}\n  C -->|allowed| D[Upstream]\n  C -->|exhausted| E[Dead letter store]",
+		"a decision with a retry loop": "flowchart LR\n  A[Send] --> B{Acked?}\n  B -->|yes| C[Done]\n  B -->|no| A",
 		"a flowchart cycle": "flowchart LR\n A[Plan] -->|go| B[Act]\n B -->|check| C[Review]\n C -->|retry| A",
 		"a sequence diagram with an alt": "sequenceDiagram\n participant C as Client\n participant A as API\n participant I as Identity\n C->>A: GET /report\n alt token valid\n A-->>C: 200 OK\n else token expired\n A->>I: refresh\n I-->>A: new token\n end\n C-)A: ack",
 		"a sequence diagram with a loop then an opt": "sequenceDiagram\n participant C as Client\n participant A as API\n participant I as Identity\n loop each page\n C->>A: next\n A-->>C: page\n end\n opt more\n C-)I: notify\n end",
@@ -265,5 +267,49 @@ describe("the diagram-design skill's own checks", { skip: !existsSync(join(SKILL
 	});
 	it("a missing skill directory runs nothing", async () => {
 		assert.deepEqual(await runDesignGates("/nonexistent.html", "/nonexistent-skill"), []);
+	});
+});
+
+describe("decision nodes", () => {
+	const GATE = "flowchart LR\n  A[Request] --> B[Retry queue]\n  B --> C{Backoff gate}\n  C -->|allowed| D[Upstream]\n  C -->|exhausted| E[Dead letter store]";
+	it("draws a diamond whose exits start on its outline, not on its bounding box", () => {
+		const r = editorialSvg(GATE, opts());
+		assert.ok(r !== null);
+		const svg = r!.svg;
+		const poly = svg.match(/<polygon points="([^"]+)" fill="#393e53|<polygon points="([^"]+)" fill="rgba/);
+		assert.ok(/<polygon points="[\d., ]+" fill="rgba\(191,69,32/.test(svg), "the hub decision is the focal node");
+		const pts = (svg.match(/<polygon points="([\d., ]+)" fill="rgba/)![1]).split(" ").map((p) => p.split(",").map(Number));
+		const xs = pts.map((p) => p[0]);
+		const right = Math.max(...xs);
+		const starts = pathsOf(svg).filter((d) => /^M\d+ \d+ L/.test(d)).map((d) => Number(d.match(/^M(\d+)/)![1]));
+		// Two fanned exits leave left of the right tip; a box would have them at the tip.
+		assert.ok(starts.filter((x) => x < right && x > right - 40 && x > Math.min(...xs) + 60).length === 2, `exits ${starts} vs tip ${right}`);
+		void poly;
+	});
+	it("allows a retry arrow back into a step", () => {
+		const r = editorialSvg("flowchart LR\n  A[Send] --> B{Acked?}\n  B -->|yes| C[Done]\n  B -->|no| A", opts());
+		assert.ok(r !== null);
+	});
+	it("ends fanned arrows on the diamond's outline, for forward and back arrows alike", () => {
+		const diamondOf = (svg: string) => (svg.match(/<polygon points="[\d.]+,[\d.]+ [\d., ]+"/g) ?? []).map((t) => t.match(/points="([^"]+)"/)![1].split(" ").map((p) => p.split(",").map(Number)));
+		const fwd = editorialSvg("flowchart LR\n  A[One] --> D{Pick}\n  B[Two] --> D\n  D -->|yes| E[Go]", opts());
+		assert.ok(fwd !== null, "forward sample draws");
+		const [dia] = diamondOf(fwd!.svg);
+		const left = Math.min(...dia!.map((p) => p[0]!));
+		const ends = pathsOf(fwd!.svg).map((d) => d.match(/L(\d+) (\d+)$/)).filter((m) => m && Number(m[1]) > left - 1 && Number(m[1]) < left + 60).map((m) => Number(m![1]));
+		assert.equal(ends.length, 2);
+		for (const x of ends) assert.ok(x > left + 5, `arrow ends at ${x}, the diamond's left tip is ${left}`);
+		const back = editorialSvg("flowchart LR\n  A[Send] --> B{Acked?}\n  B -->|yes| C[Done]\n  A2[Poll] --> B\n  B -->|no| A\n  C -->|again| B", opts());
+		assert.ok(back !== null, "back sample draws");
+		const [bd] = diamondOf(back!.svg);
+		const top = Math.min(...bd!.map((p) => p[1]!));
+		const tops = pathsOf(back!.svg).flatMap((d) => [d.match(/^M(\d+) (\d+)/), d.match(/L(\d+) (\d+)$/)]).filter((m) => m && Number(m[1]) > Math.min(...bd!.map((p) => p[0]!)) && Number(m[1]) < Math.max(...bd!.map((p) => p[0]!)) && Number(m[2]) > top + 5 && Number(m[2]) < top + 20).map((m) => Number(m![2]));
+		assert.equal(tops.length, 2);
+		assert.deepEqual(tops, [top + 12, top + 12]);
+	});
+	it("refuses a decision with four exits and one with an unlabelled exit", () => {
+		const refused = (src: string) => { const r = styleForPackage(src, { index: 1, caption: "x" }); return "refused" in r ? r.refused : ""; };
+		assert.match(refused("flowchart LR\n  A{Pick} -->|a| B[One]\n  A -->|b| C[Two]\n  A -->|c| D[Three]\n  A -->|d| E[Four]"), /more than three exits/);
+		assert.match(refused("flowchart LR\n  A[Go] --> B{Ok?}\n  B --> C[Yes]\n  B -->|no| A"), /exit with no label/);
 	});
 });

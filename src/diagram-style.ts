@@ -3,7 +3,7 @@
  * one accent on the focal node, 6px-radius boxes with no shadows, orthogonal connectors with r=8 elbows,
  * masked all-caps arrow labels, and an accessible title and desc. It lays out layer by layer.
  *
- * It draws only what it can draw correctly and returns null otherwise (nested subgraphs, decisions, cycles, long
+ * It draws only what it can draw correctly and returns null otherwise (nested subgraphs, composite states, long
  * labels, an edge that would pass behind a box, a label that would not fit), so the caller falls back to
  * the Mermaid renderer instead of shipping a diagram that breaks the skill's connector rules.
  */
@@ -27,18 +27,19 @@ export const DARK: Skin = { paper: "#2d3142", ink: "#f5f5f5", muted: "#bfc0c0", 
 const SANS = "Geist, system-ui, sans-serif";
 const MONO = "'Geist Mono', ui-monospace, monospace";
 const NODE_H = 48;
+const DIAMOND_H = 72;
 const LABEL_MAX = 14;
 const R = 8;
 const MARGIN = 32;
 
-interface GNode { pseudo?: "start" | "end"; group: string | null; id: string; label: string; store: boolean; layer: number; slot: number; m: number; c: number; msize: number; csize: number }
+interface GNode { decision?: boolean; pseudo?: "start" | "end"; group: string | null; id: string; label: string; store: boolean; layer: number; slot: number; m: number; c: number; msize: number; csize: number }
 interface GEdge { back?: boolean; from: string; to: string; label: string; style: "solid" | "dotted" | "thick" | "line" }
 type Seg = { a1: number; c1: number; a2: number; c2: number };
 
 const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 const snap = (n: number) => Math.ceil(n / 4) * 4;
 
-const NODE = /([A-Za-z_]\w*)(?:\[\(\s*"?([^\]"]*?)"?\s*\)\]|\[\s*"?([^\]"]*?)"?\s*\]|\(\(\s*"?([^)"]*?)"?\s*\)\)|\(\s*"?([^)"]*?)"?\s*\))?/y;
+const NODE = /([A-Za-z_]\w*)(?:\[\(\s*"?([^\]"]*?)"?\s*\)\]|\[\s*"?([^\]"]*?)"?\s*\]|\(\(\s*"?([^)"]*?)"?\s*\)\)|\(\s*"?([^)"]*?)"?\s*\)|\{\s*"?([^}"]*?)"?\s*\})?/y;
 const ARROW = /\s*(?:(-->|---|==>|-\.->)(?:\|([^|]*)\|)?|--\s+([^->|][^>]*?)\s+(-->|---)|==\s+([^=>|][^>]*?)\s+(==>)|-\.\s+([^.>|][^>]*?)\s+(\.->))\s*/y;
 
 interface Group { id: string; title: string }
@@ -81,12 +82,13 @@ function parse(source: string): { dir: "LR" | "TD"; nodes: GNode[]; edges: GEdge
 			NODE.lastIndex = pos;
 			const n = NODE.exec(line);
 			if (!n) return null;
-			const label = (n[2] ?? n[3] ?? n[4] ?? n[5])?.trim();
+			const label = (n[2] ?? n[3] ?? n[4] ?? n[5] ?? n[6])?.trim();
 			const known = nodes.get(n[1]);
 			if (known) {
 				if (label !== undefined) known.label = label;
-			} else nodes.set(n[1], { group: open?.id ?? null, id: n[1], label: label ?? n[1], store: n[2] !== undefined, layer: 0, slot: 0, m: 0, c: 0, msize: 0, csize: 0 });
+			} else nodes.set(n[1], { group: open?.id ?? null, id: n[1], label: label ?? n[1], store: n[2] !== undefined, decision: n[6] !== undefined || undefined, layer: 0, slot: 0, m: 0, c: 0, msize: 0, csize: 0 });
 			if (n[2] !== undefined && known) known.store = true;
+			if (n[6] !== undefined && known) known.decision = true;
 			ids.push(n[1]);
 			pos = NODE.lastIndex;
 			if (pos >= line.length) break;
@@ -171,13 +173,18 @@ function layoutBlock(nodes: GNode[], edges: GEdge[], lr: boolean, skin: Skin, op
 			n.csize = PSEUDO;
 			continue;
 		}
-		const w = Math.min(240, Math.max(112, snap(n.label.length * 7.2 + 32)));
-		if (n.label.length * 7.2 + 32 > 240) return bail("node label too wide");
+		if (n.decision) {
+			if (outs.length + back.filter((e) => e.from === n.id).length > 3) return bail("a decision with more than three exits");
+			if ([...outs, ...back.filter((e) => e.from === n.id)].some((e) => !e.label)) return bail("a decision exit with no label");
+		}
+		// A diamond is 78% as wide at the height of its text, so it needs the label's width over 0.78.
+		const w = n.decision ? snap(Math.max(120, (n.label.length * 7.2 + 16) / 0.78)) : Math.min(240, Math.max(112, snap(n.label.length * 7.2 + 32)));
+		if (w > 240 || n.label.length * 7.2 + 32 > 240 && !n.decision) return bail("node label too wide");
 		// Room for every port: a label sits above (LR) or beside (TD) its connector, so incoming ports on one
 		// edge need that much space between them; outgoing ports need the skill's 12px.
 		const labelW = Math.max(0, ...ins.map((e) => e.label.length * 5.4 + 8));
-		const need = Math.max(lr ? NODE_H : w, ins.length > 1 ? (lr ? 24 : labelW + 14) * (ins.length + 1) : 0, outs.length > 1 ? 12 * (outs.length + 1) : 0);
-		n.msize = lr ? w : NODE_H;
+		const need = Math.max(lr ? (n.decision ? DIAMOND_H : NODE_H) : w, ins.length > 1 ? (lr ? 24 : labelW + 14) * (ins.length + 1) : 0, outs.length > 1 ? 12 * (outs.length + 1) : 0);
+		n.msize = lr ? w : n.decision ? DIAMOND_H : NODE_H;
 		n.csize = Math.min(lr ? 240 : 320, snap(need));
 	}
 	// Order within each layer: appearance, then two barycenter sweeps; frames keep their members together.
@@ -282,6 +289,10 @@ function layoutBlock(nodes: GNode[], edges: GEdge[], lr: boolean, skin: Skin, op
 		if (ends.length > 1 && n.msize / (ends.length + 1) < 12) return bail("too many back arrows on one node");
 	}
 
+	// A diamond's outline recedes from its bounding box away from the tips: a connector on a fanned port starts
+	// or ends on the outline, not on the box.
+	const rimMain = (n: GNode, p: number) => (n.decision ? Math.round(((n.msize / 2) * Math.abs(p - n.csize / 2)) / (n.csize / 2)) : 0);
+	const rimCross = (n: GNode, p: number) => (n.decision ? Math.round(((n.csize / 2) * Math.abs(p - n.msize / 2)) / (n.msize / 2)) : 0);
 	const segs: Array<{ edge: number; seg: Seg }> = [];
 	const paths: string[] = [];
 	const labels: Array<{ edge: number; text: string; x: number; y: number; w: number }> = [];
@@ -300,9 +311,9 @@ function layoutBlock(nodes: GNode[], edges: GEdge[], lr: boolean, skin: Skin, op
 		if (e.back) continue;
 		const s = by.get(e.from)!;
 		const t = by.get(e.to)!;
-		const a1 = s.m + s.msize;
+		const a1 = s.m + s.msize - rimMain(s, port.get(`out:${idx}`)!);
 		const c1 = s.c + port.get(`out:${idx}`)!;
-		const a2 = t.m;
+		const a2 = t.m + rimMain(t, port.get(`in:${idx}`)!);
 		const c2 = t.c + port.get(`in:${idx}`)!;
 		const others = nodes.filter((n) => n !== s && n !== t);
 		const channels = [layerEnd[s.layer] + 16 + 12 * (used.get(s.layer) ?? 0), a2 - 16 - 12 * (used.get(-t.layer) ?? 0)];
@@ -359,12 +370,14 @@ function layoutBlock(nodes: GNode[], edges: GEdge[], lr: boolean, skin: Skin, op
 		const lane = top - 16 - pitch * rank - (lr ? 0 : 0);
 		const as = s.m + topPort.get(`out:${idx}`)!;
 		const at = t.m + topPort.get(`in:${idx}`)!;
-		const legs: Seg[] = [{ a1: as, c1: s.c, a2: as, c2: lane }, { a1: as, c1: lane, a2: at, c2: lane }, { a1: at, c1: lane, a2: at, c2: t.c }];
+		const sc = s.c + rimCross(s, topPort.get(`out:${idx}`)!);
+		const tc = t.c + rimCross(t, topPort.get(`in:${idx}`)!);
+		const legs: Seg[] = [{ a1: as, c1: sc, a2: as, c2: lane }, { a1: as, c1: lane, a2: at, c2: lane }, { a1: at, c1: lane, a2: at, c2: tc }];
 		if (nodes.some((n) => n !== s && hit(legs[0], n)) || nodes.some((n) => n !== t && hit(legs[2], n))) return bail("no route for a back arrow that avoids every other box");
 		for (const seg of legs) segs.push({ edge: idx, seg });
 		const sign = at > as ? 1 : -1;
 		const r = Math.min(R, Math.abs(at - as) / 2);
-		stroke(e, `M${px(as, s.c)} L${px(as, lane + r)} Q${px(as, lane)} ${px(as + sign * r, lane)} L${px(at - sign * r, lane)} Q${px(at, lane)} ${px(at, lane + r)} L${px(at, t.c)}`);
+		stroke(e, `M${px(as, sc)} L${px(as, lane + r)} Q${px(as, lane)} ${px(as + sign * r, lane)} L${px(at - sign * r, lane)} Q${px(at, lane)} ${px(at, lane + r)} L${px(at, tc)}`);
 		if (e.label) {
 			const w = Math.ceil(e.label.length * 5.4 + 8);
 			if (Math.abs(at - as) < (lr ? w + 16 : 22)) return bail("label does not fit on its back arrow");
@@ -378,7 +391,16 @@ function layoutBlock(nodes: GNode[], edges: GEdge[], lr: boolean, skin: Skin, op
 		const own = labels[i].edge;
 		for (const n of nodes) {
 			const [nx, ny, nw, nh] = lr ? [n.m, n.c, n.msize, n.csize] : [n.c, n.m, n.csize, n.msize];
-			if (b.x1 > nx && b.x0 < nx + nw && b.y1 > ny && b.y0 < ny + nh) return bail("a label would cover a box");
+			if (b.x1 > nx && b.x0 < nx + nw && b.y1 > ny && b.y0 < ny + nh) {
+				if (n.decision) {
+					// Nearest point of the label to the diamond's centre must lie outside the diamond.
+					const [cx, cy] = [nx + nw / 2, ny + nh / 2];
+					const dx = Math.max(b.x0 - cx, 0, cx - b.x1);
+					const dy = Math.max(b.y0 - cy, 0, cy - b.y1);
+					if (dx / (nw / 2) + dy / (nh / 2) >= 1) continue;
+				}
+				return bail("a label would cover a box");
+			}
 		}
 		for (const { edge, seg } of segs) {
 			if (edge === own) continue;
@@ -402,6 +424,10 @@ function layoutBlock(nodes: GNode[], edges: GEdge[], lr: boolean, skin: Skin, op
 		const kind = n.id === focal ? "FOCAL" : n.store ? "STORE" : "STEP";
 		kinds.add(kind);
 		const [fill, stroke] = kind === "FOCAL" ? [skin.accentTint, skin.accent] : kind === "STORE" ? [skin.store, skin.muted] : [skin.node, skin.ink];
+		if (n.decision) {
+			const pts = `${x + w / 2},${y} ${x + w},${y + h / 2} ${x + w / 2},${y + h} ${x},${y + h / 2}`;
+			return `<polygon points="${pts}" fill="${skin.paper}"/><polygon points="${pts}" fill="${fill}" stroke="${stroke}" stroke-width="1" stroke-linejoin="round"/><text x="${x + w / 2}" y="${y + h / 2 + 4}" fill="${skin.ink}" font-size="12" font-weight="600" font-family="${SANS}" text-anchor="middle">${esc(n.label)}</text>`;
+		}
 		return `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="6" fill="${skin.paper}"/><rect x="${x}" y="${y}" width="${w}" height="${h}" rx="6" fill="${fill}" stroke="${stroke}" stroke-width="1"/><text x="${x + w / 2}" y="${y + h / 2 + 4}" fill="${skin.ink}" font-size="12" font-weight="600" font-family="${SANS}" text-anchor="middle">${esc(n.label)}</text>`;
 	});
 	const labelSvg = labels.map((l) => `<rect x="${l.x - l.w / 2}" y="${l.y - 7}" width="${l.w}" height="14" rx="2" fill="${skin.paper}"/><text x="${l.x}" y="${l.y + 3}" fill="${skin.soft}" font-size="8" font-family="${MONO}" text-anchor="middle" letter-spacing="0.06em">${esc(l.text)}</text>`);
@@ -465,7 +491,7 @@ export function editorialSvg(source: string, opts: { slug: string; title: string
 	refusal = null;
 	if (/^\s*(?:%%[^\n]*\n\s*)*sequenceDiagram\b/.test(source)) return sequenceDiagram(source, opts);
 	const g = model(source);
-	if (!g) return bail("not a diagram this drawer reads (nested subgraph, decision, composite state, chained & or similar)");
+	if (!g) return bail("not a diagram this drawer reads (nested subgraph, composite state, chained & or similar)");
 	const skin = opts.skin ?? LIGHT;
 	const { dir, nodes, edges, groups } = g;
 	if (nodes.filter((n) => !n.pseudo).length > 9 || edges.length > 12) return bail("over 9 nodes or 12 arrows");

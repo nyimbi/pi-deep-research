@@ -106,7 +106,8 @@ It draws three Mermaid types, and what it can draw correctly of each:
 
 - **Flowcharts** (`flowchart` or `graph`, `LR` or `TD`): one level of subgraphs drawn as titled frames, with
   arrows between frames allowed (each subgraph gets its own band, so frames never meet); cycles, drawn as a
-  back arrow in a lane beside the nodes; `linkStyle` arrows with a stroke take the accent (at most 2).
+  back arrow in a lane beside the nodes; decisions (`{text}`), drawn as diamonds with at most three exits, each
+  labelled, and connectors that start and end on the diamond's outline; `linkStyle` arrows with a stroke take the accent (at most 2).
 - **State diagrams** (`stateDiagram` or `stateDiagram-v2`, optional `direction LR`): states, `[*]` start and end
   markers, labelled transitions and loops. Composite states, forks, choices, notes and descriptions are refused.
 - **Sequence diagrams**: up to 5 participants and 12 messages. `->>` is a call (solid), `-->>` a return (dashed,
