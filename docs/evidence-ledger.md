@@ -102,8 +102,8 @@ connectors with r=8 elbows, one port per connector, all-caps arrow labels on a m
 legend strip, and an accessible `<title>` and `<desc>` taken from the caption sentence. Each drawn diagram is
 written as `diagrams/diagram-N.svg` and a standalone page `diagrams/diagram-N.html` in the skill's page shape.
 
-It draws what it can draw correctly: `flowchart LR` or `TD`, up to 9 nodes and 12 arrows, no subgraphs, decisions
-or cycles, labels of 14 characters or fewer, and a route for every edge that avoids every other box. Anything else
+It draws what it can draw correctly: `flowchart LR` or `TD`, up to 9 nodes and 12 arrows, one level of subgraphs (each drawn as a titled frame, no arrows between frames; `linkStyle` arrows with a
+stroke take the accent, at most 2), no decisions or cycles, labels of 14 characters or fewer, and a route for every edge that avoids every other box. Anything else
 is drawn by Mermaid, themed with the same tokens, and finalize warns with the reason, for example "is drawn by
 Mermaid, not in the editorial style: label over 14 characters". Shorten the label or drop the subgraph and it
 is drawn in style on the next run.

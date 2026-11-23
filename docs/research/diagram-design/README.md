@@ -39,8 +39,7 @@ flowcharts itself (see `docs/evidence-ledger.md`, "Editorial style"). Decisions:
   is not stated in the bundle; the gates call the installed skill at its path and do nothing if it is absent.
 - **Its tooling is the gate.** `self_check.py` and `verify-geometry.py` run on every editorial page. Both pass on
   the drawer's output; both fail on a planted diagonal connector and a removed accessible name (tested).
-- **Still not covered:** the other 44 diagram types, subgraphs and decisions (so the report template's comparison
-  skeleton falls back to themed Mermaid), cycles, crossing hops, and a dark variant (the tokens exist, nothing
+- **Still not covered:** the other 44 diagram types, decisions, nested subgraphs and arrows between subgraphs, cycles, crossing hops, and a dark variant (the tokens exist, nothing
   selects them).
 
 ## Measured

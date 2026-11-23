@@ -3,7 +3,7 @@
  * one accent on the focal node, 6px-radius boxes with no shadows, orthogonal connectors with r=8 elbows,
  * masked all-caps arrow labels, and an accessible title and desc. It lays out layer by layer.
  *
- * It draws only what it can draw correctly and returns null otherwise (subgraphs, decisions, cycles, long
+ * It draws only what it can draw correctly and returns null otherwise (nested subgraphs, decisions, cycles, long
  * labels, an edge that would pass behind a box, a label that would not fit), so the caller falls back to
  * the Mermaid renderer instead of shipping a diagram that breaks the skill's connector rules.
  */
@@ -29,7 +29,7 @@ const LABEL_MAX = 14;
 const R = 8;
 const MARGIN = 32;
 
-interface GNode { id: string; label: string; store: boolean; layer: number; slot: number; m: number; c: number; msize: number; csize: number }
+interface GNode { group: string | null; id: string; label: string; store: boolean; layer: number; slot: number; m: number; c: number; msize: number; csize: number }
 interface GEdge { from: string; to: string; label: string; style: "solid" | "dotted" | "thick" | "line" }
 type Seg = { a1: number; c1: number; a2: number; c2: number };
 
@@ -39,15 +39,39 @@ const snap = (n: number) => Math.ceil(n / 4) * 4;
 const NODE = /([A-Za-z_][\w-]*)(?:\[\(\s*"?([^\]"]*?)"?\s*\)\]|\[\s*"?([^\]"]*?)"?\s*\]|\(\(\s*"?([^)"]*?)"?\s*\)\)|\(\s*"?([^)"]*?)"?\s*\))?/y;
 const ARROW = /\s*(?:(-->|---|==>|-\.->)(?:\|([^|]*)\|)?|--\s+([^->|][^>]*?)\s+(-->|---)|==\s+([^=>|][^>]*?)\s+(==>)|-\.\s+([^.>|][^>]*?)\s+(\.->))\s*/y;
 
-function parse(source: string): { dir: "LR" | "TD"; nodes: GNode[]; edges: GEdge[] } | null {
+interface Group { id: string; title: string }
+
+function parse(source: string): { dir: "LR" | "TD"; nodes: GNode[]; edges: GEdge[]; groups: Group[] } | null {
 	const lines = source.split("\n").map((l) => l.trim()).filter((l) => l && !l.startsWith("%%"));
 	const head = /^(?:flowchart|graph)\s+(LR|TD|TB)\s*;?$/.exec(lines[0] ?? "");
 	if (!head) return null;
 	const nodes = new Map<string, GNode>();
 	const edges: GEdge[] = [];
+	const groups: Group[] = [];
+	const marked = new Set<number>();
+	let open: Group | null = null;
 	for (const line of lines.slice(1)) {
+		const sub = /^subgraph\s+(?:([A-Za-z_][\w-]*)\s*\[\s*"?([^\]"]*?)"?\s*\]|"?([^"]+?)"?)\s*$/.exec(line);
+		if (sub) {
+			if (open) return null;
+			const title = (sub[2] ?? sub[3]).trim();
+			open = { id: sub[1] ?? title, title };
+			if (groups.some((x) => x.id === open!.id)) return null;
+			groups.push(open);
+			continue;
+		}
+		if (/^end$/.test(line)) {
+			if (!open) return null;
+			open = null;
+			continue;
+		}
+		const ls = /^linkStyle\s+(\d[\d,\s]*)\s+(.*)$/.exec(line);
+		if (ls) {
+			if (/stroke\s*:/.test(ls[2])) for (const i of ls[1].split(",")) marked.add(Number(i.trim()));
+			continue;
+		}
 		if (/^(?:style|classDef|class|linkStyle|click|direction)\b/.test(line)) continue;
-		if (/^(?:subgraph|end)\b|<br|&|:::/.test(line)) return null;
+		if (/^subgraph\b|<br|&|:::/.test(line)) return null;
 		const ids: string[] = [];
 		const arrows: Array<Pick<GEdge, "label" | "style">> = [];
 		let pos = 0;
@@ -59,7 +83,7 @@ function parse(source: string): { dir: "LR" | "TD"; nodes: GNode[]; edges: GEdge
 			const known = nodes.get(n[1]);
 			if (known) {
 				if (label !== undefined) known.label = label;
-			} else nodes.set(n[1], { id: n[1], label: label ?? n[1], store: n[2] !== undefined, layer: 0, slot: 0, m: 0, c: 0, msize: 0, csize: 0 });
+			} else nodes.set(n[1], { group: open?.id ?? null, id: n[1], label: label ?? n[1], store: n[2] !== undefined, layer: 0, slot: 0, m: 0, c: 0, msize: 0, csize: 0 });
 			if (n[2] !== undefined && known) known.store = true;
 			ids.push(n[1]);
 			pos = NODE.lastIndex;
@@ -74,8 +98,9 @@ function parse(source: string): { dir: "LR" | "TD"; nodes: GNode[]; edges: GEdge
 		}
 		arrows.forEach((a, i) => edges.push({ from: ids[i], to: ids[i + 1], ...a }));
 	}
-	if (!edges.length || nodes.size < 2) return null;
-	return { dir: head[1] === "LR" ? "LR" : "TD", nodes: [...nodes.values()], edges };
+	if (open || !edges.length || nodes.size < 2) return null;
+	for (const i of marked) if (edges[i]) edges[i].style = "thick";
+	return { dir: head[1] === "LR" ? "LR" : "TD", nodes: [...nodes.values()], edges, groups };
 }
 
 /** Longest-path layers, or null on a cycle or self-loop. */
@@ -113,19 +138,12 @@ export interface StyledDiagram {
 	height: number;
 }
 
-export function editorialSvg(source: string, opts: { slug: string; title: string; desc: string; skin?: Skin }): StyledDiagram | null {
-	refusal = null;
-	const g = parse(source);
-	if (!g) return bail("not a flowchart this drawer reads (subgraph, decision, chained & or similar)");
-	const skin = opts.skin ?? LIGHT;
-	const { dir, nodes, edges } = g;
-	if (nodes.length > 9 || edges.length > 12 || !layer(nodes, edges)) return bail("over 9 nodes or 12 arrows, or a cycle");
-	const lr = dir === "LR";
+interface Block { w: number; h: number; paths: string[]; labelSvg: string[]; boxesSvg: string[]; kinds: Set<string>; focal: boolean }
+
+/** Lays out one connected-or-not set of nodes in local coordinates, margin included. */
+function layoutBlock(nodes: GNode[], edges: GEdge[], lr: boolean, skin: Skin, focalOk: boolean): Block | null {
 	const by = new Map(nodes.map((n) => [n.id, n]));
-	for (const e of edges) {
-		if (e.label.length > LABEL_MAX) return bail("label over 14 characters");
-		e.label = e.label.toUpperCase();
-	}
+	if (!layer(nodes, edges)) return bail("a cycle");
 	for (const n of nodes) {
 		const w = Math.min(240, Math.max(112, snap(n.label.length * 7.2 + 32)));
 		if (n.label.length * 7.2 + 32 > 240) return bail("node label too wide");
@@ -269,7 +287,7 @@ export function editorialSvg(source: string, opts: { slug: string; title: string
 
 	const degree = (n: GNode) => edges.filter((e) => e.from === n.id || e.to === n.id).length;
 	const hub = [...nodes].sort((a, b) => degree(b) - degree(a))[0];
-	const focal = degree(hub) >= 3 ? hub.id : null;
+	const focal = focalOk && degree(hub) >= 3 ? hub.id : null;
 	const kinds = new Set<string>();
 	const boxesSvg = nodes.map((n) => {
 		const [x, y, w, h] = lr ? [n.m, n.c, n.msize, n.csize] : [n.c, n.m, n.csize, n.msize];
@@ -278,9 +296,60 @@ export function editorialSvg(source: string, opts: { slug: string; title: string
 		const [fill, stroke] = kind === "FOCAL" ? [skin.accentTint, skin.accent] : kind === "STORE" ? [skin.store, skin.muted] : [skin.node, skin.ink];
 		return `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="6" fill="${skin.paper}"/><rect x="${x}" y="${y}" width="${w}" height="${h}" rx="6" fill="${fill}" stroke="${stroke}" stroke-width="1"/><text x="${x + w / 2}" y="${y + h / 2 + 4}" fill="${skin.ink}" font-size="12" font-weight="600" font-family="${SANS}" text-anchor="middle">${esc(n.label)}</text>`;
 	});
-	const width = Math.max(960, snap(lr ? mainEnd : crossEnd));
-	const body = lr ? crossEnd : mainEnd;
-	const dx = Math.floor(Math.max(0, (width - (lr ? mainEnd : crossEnd)) / 2) / 4) * 4;
+	const labelSvg = labels.map((l) => `<rect x="${l.x - l.w / 2}" y="${l.y - 7}" width="${l.w}" height="14" rx="2" fill="${skin.paper}"/><text x="${l.x}" y="${l.y + 3}" fill="${skin.soft}" font-size="8" font-family="${MONO}" text-anchor="middle" letter-spacing="0.06em">${esc(l.text)}</text>`);
+	return { w: lr ? mainEnd : crossEnd, h: lr ? crossEnd : mainEnd, paths, labelSvg, boxesSvg, kinds, focal: focal !== null };
+}
+
+export function editorialSvg(source: string, opts: { slug: string; title: string; desc: string; skin?: Skin }): StyledDiagram | null {
+	refusal = null;
+	const g = parse(source);
+	if (!g) return bail("not a flowchart this drawer reads (nested subgraph, decision, chained & or similar)");
+	const skin = opts.skin ?? LIGHT;
+	const { dir, nodes, edges, groups } = g;
+	if (nodes.length > 9 || edges.length > 12) return bail("over 9 nodes or 12 arrows");
+	const lr = dir === "LR";
+	const group = new Map(nodes.map((n) => [n.id, n.group]));
+	for (const e of edges) {
+		if (e.label.length > LABEL_MAX) return bail("label over 14 characters");
+		if (group.get(e.from) !== group.get(e.to)) return bail("an arrow crosses between subgraphs");
+		e.label = e.label.toUpperCase();
+	}
+	const accentArrows = edges.filter((e) => e.style === "thick").length;
+	if (accentArrows > 2) return bail("more than 2 accent arrows");
+	const frames: Array<{ id: string | null; title: string | null }> = [...(nodes.some((n) => n.group === null) ? [{ id: null, title: null }] : []), ...groups];
+	let focalLeft = 2 - accentArrows;
+	const placed: Array<{ title: string | null; b: Block; bw: number }> = [];
+	for (const f of frames) {
+		const ns = nodes.filter((n) => n.group === f.id);
+		if (!ns.length) continue;
+		const ids = new Set(ns.map((n) => n.id));
+		const b = layoutBlock(ns, edges.filter((e) => ids.has(e.from)), lr, skin, focalLeft > 0);
+		if (!b) return null;
+		if (b.focal) focalLeft--;
+		placed.push({ title: f.title?.toUpperCase() ?? null, b, bw: Math.max(b.w, f.title ? snap(f.title.length * 6.4 + 56) : 0) });
+	}
+	const BAND = 20;
+	const flo = (n: number) => Math.floor(n / 4) * 4;
+	const total = lr ? Math.max(...placed.map((p) => p.bw)) : placed.reduce((a, p) => a + p.bw, 0);
+	const width = Math.max(960, snap(total));
+	const parts: string[] = [];
+	const kinds = new Set<string>();
+	let cursor = lr ? 0 : flo((width - total) / 2);
+	let body = 0;
+	for (const p of placed) {
+		const band = p.title ? BAND : 0;
+		const fx = lr ? flo((width - p.bw) / 2) : cursor;
+		const fy = lr ? cursor : 0;
+		const ox = fx + flo((p.bw - p.b.w) / 2);
+		if (p.title) {
+			parts.push(`<rect x="${fx + 12}" y="${fy + 8}" width="${p.bw - 24}" height="${band + p.b.h - 12}" rx="6" fill="none" stroke="${skin.muted}" stroke-opacity="0.35" stroke-width="1"/>`);
+			parts.push(`<text x="${fx + 28}" y="${fy + 28}" fill="${skin.muted}" font-size="9" font-family="${MONO}" letter-spacing="0.12em">${esc(p.title)}</text>`);
+		}
+		parts.push(`<g transform="translate(${ox} ${fy + band})">`, ...p.b.paths, ...p.b.labelSvg, ...p.b.boxesSvg, "</g>");
+		for (const k of p.b.kinds) kinds.add(k);
+		body = lr ? fy + band + p.b.h : Math.max(body, band + p.b.h);
+		cursor += lr ? band + p.b.h : p.bw;
+	}
 	const legend = kinds.size > 1;
 	const height = snap(body + (legend ? 60 : 0));
 	const legendSvg = legend
@@ -290,18 +359,13 @@ export function editorialSvg(source: string, opts: { slug: string; title: string
 				return `<rect x="${100 + i * 160}" y="${body + 11}" width="16" height="12" rx="2" fill="${fill}" stroke="${stroke}"/><text x="${124 + i * 160}" y="${body + 20}" fill="${skin.soft}" font-size="8" font-family="${MONO}" letter-spacing="0.08em">${k}</text>`;
 			}).join("")
 		: "";
-	const labelSvg = labels.map((l) => `<rect x="${l.x - l.w / 2}" y="${l.y - 7}" width="${l.w}" height="14" rx="2" fill="${skin.paper}"/><text x="${l.x}" y="${l.y + 3}" fill="${skin.soft}" font-size="8" font-family="${MONO}" text-anchor="middle" letter-spacing="0.06em">${esc(l.text)}</text>`);
 	const svg = [
 		`<svg viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="${opts.slug}-title ${opts.slug}-desc">`,
 		`<title id="${opts.slug}-title">${esc(opts.title)}</title>`,
 		`<desc id="${opts.slug}-desc">${esc(opts.desc)}</desc>`,
 		`<defs><marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="${skin.muted}"/></marker><marker id="arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="${skin.accent}"/></marker></defs>`,
 		`<rect width="100%" height="100%" fill="${skin.paper}"/>`,
-		dx > 0 ? `<g transform="translate(${dx} 0)">` : "",
-		...paths,
-		...labelSvg,
-		...boxesSvg,
-		dx > 0 ? "</g>" : "",
+		...parts,
 		legendSvg,
 		"</svg>",
 	].join("\n");

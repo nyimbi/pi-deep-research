@@ -62,7 +62,9 @@ describe("editorialSvg", () => {
 	});
 	it("refuses what it cannot draw, and says why", () => {
 		const cases: Array<[string, RegExp]> = [
-			["flowchart LR\n subgraph A[x]\n a --> b\n end", /not a flowchart/],
+			["flowchart LR\n subgraph A[x]\n subgraph B[y]\n a --> b\n end\n end", /not a flowchart/],
+			["flowchart LR\n subgraph A[x]\n a --> b\n end\n subgraph B[y]\n c --> d\n end\n b --> c", /crosses between subgraphs/],
+			["flowchart LR\n a -->|x| b\n b -->|y| c\n c -->|z| d\n linkStyle 0,1,2 stroke:#d33", /more than 2 accent/],
 			["flowchart LR\n A --> B\n B --> A", /cycle/],
 			["flowchart LR\n A -->|this label is too long| B", /14 characters/],
 			["sequenceDiagram\n A->>B: hi", /not a flowchart/],
@@ -72,6 +74,19 @@ describe("editorialSvg", () => {
 			assert.equal(editorialSvg(src, opts()), null);
 			assert.match(styleRefusal() ?? "", why);
 		}
+	});
+	it("draws each subgraph as a titled frame and marks linkStyle arrows with the accent", () => {
+		const src = 'flowchart LR\n  subgraph A["Option A: direct"]\n    a1[Client] -->|writes| a2[(Store)]\n  end\n  subgraph B["Option B: queued"]\n    b1[Client] -->|enqueues| b2[Queue]\n    b2 -->|drains| b3[(Store)]\n  end\n  linkStyle 1,2 stroke:#d33,stroke-width:3px';
+		const out = editorialSvg(src, opts())!;
+		assert.ok(out, styleRefusal() ?? "");
+		assert.match(out.svg, />OPTION A: DIRECT</);
+		assert.match(out.svg, />OPTION B: QUEUED</);
+		assert.equal((out.svg.match(/stroke="#bf4520"[^>]*marker-end="url\(#arrow-accent\)"/g) ?? []).length, 2);
+		assert.equal((out.svg.match(/<path d=/g) ?? []).length, 3);
+		assert.equal((out.svg.match(/stroke-opacity="0.35"/g) ?? []).length, 2);
+		for (const d of pathsOf(out.svg)) assert.equal(diagonals(d), 0);
+		const td = editorialSvg(src.replace("LR", "TD"), opts())!;
+		assert.ok(td && td.width >= 960);
 	});
 	it("escapes labels", () => {
 		const out = editorialSvg('flowchart LR\n  A["a < b"] -->|go| B[x]', opts())!;
