@@ -461,6 +461,7 @@ export default async function (pi: ExtensionAPI) {
 			depth: Type.String({ description: '"quick", "standard", "deep", or "exhaustive"' }),
 			round: Type.Number({ description: "Current search round, 1-indexed" }),
 			research_id: Type.Optional(Type.String({ description: "Stable id for this research run (recommended)" })),
+			slug: Type.Optional(Type.String({ description: "Notes slug from research_notes; reports rubric progress and blocks PROCEED while a mandatory item is open" })),
 			question: Type.Optional(Type.String({ description: "Core research question, for the finalizer" })),
 			sub_questions: Type.Array(
 				Type.Object({
@@ -476,7 +477,7 @@ export default async function (pi: ExtensionAPI) {
 			contradictions: Type.Optional(Type.Array(Type.String())),
 			gaps: Type.Optional(Type.Array(Type.String())),
 		}),
-		async execute(_toolCallId, params) {
+		async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
 			if (params.research_id && params.research_id !== activeResearchId) {
 				if (activeResearchId) console.warn(`[pi-deep-research] research id changed ${activeResearchId} -> ${params.research_id}; one ledger per process`);
 				activeResearchId = params.research_id;
@@ -522,6 +523,20 @@ export default async function (pi: ExtensionAPI) {
 				verdict = "PROCEED";
 				if (issues.length > 0) issues.push(`Max search rounds reached (${thresholds.maxSearchRounds}); remaining issues belong in Gaps.`);
 			}
+			let rubricLine = "";
+			if (params.slug && /^[a-z0-9][a-z0-9-]{1,63}$/.test(params.slug)) {
+				const cwd = (ctx as { cwd?: string } | undefined)?.cwd ?? process.cwd();
+				const notes = await loadNotes(join(resolveArchiveRoot(cwd, settings.archiveRoot), params.slug)).catch(() => null);
+				if (notes?.rubric.length) {
+					const open = notes.rubric.filter((r) => !r.satisfied);
+					rubricLine = `- Rubric: ${notes.rubric.length - open.length}/${notes.rubric.length} satisfied${open.length ? ` (open: ${open.map((r) => `${r.id} ${r.tier}`).join(", ")})` : ""}\n`;
+					const mandatoryOpen = open.filter((r) => r.tier === "mandatory");
+					if (mandatoryOpen.length && params.round < thresholds.maxSearchRounds) {
+						verdict = "CONTINUE";
+						issues.push(`Mandatory rubric items not satisfied: ${mandatoryOpen.map((r) => `${r.id} "${r.text}"`).join(", ")}`);
+					}
+				}
+			}
 			const statusBar = `${"█".repeat(Math.round(avgConfidence / 5))}${"░".repeat(20 - Math.round(avgConfidence / 5))}`;
 			let text = `## Research Checkpoint — Round ${params.round}\n\n`;
 			text += `**Depth:** ${params.depth} | **Verdict: ${verdict === "CONTINUE" ? "CONTINUE SEARCHING" : "PROCEED TO REPORT"}**\n\n`;
@@ -535,7 +550,7 @@ export default async function (pi: ExtensionAPI) {
 			text += `- Search rounds: ${params.round} / ${thresholds.minSearchRounds}-${thresholds.maxSearchRounds}\n`;
 			text += `- Sub-questions answered: ${answeredCount}/${totalQuestions} (${(answeredRatio * 100).toFixed(0)}%)\n`;
 			text += `- Avg confidence: ${statusBar} ${avgConfidence.toFixed(0)}% (threshold ${thresholds.confidenceThreshold}%)\n`;
-			text += `- Min confidence: ${minConfidence.toFixed(0)}%\n\n### Sub-question Status\n`;
+			text += `- Min confidence: ${minConfidence.toFixed(0)}%\n${rubricLine}\n### Sub-question Status\n`;
 			for (const q of params.sub_questions) {
 				const icon = q.confidence >= thresholds.confidenceThreshold ? "OK" : q.confidence >= 40 ? "MID" : "LOW";
 				text += `${icon} [${q.confidence}%] ${q.question} — ${q.source_count} sources (Tier ${q.best_source_tier})\n`;

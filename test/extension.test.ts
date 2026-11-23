@@ -116,4 +116,17 @@ describe("extension URL provenance", () => {
 		assert.match(resumed, /\[F1\] It times out\./);
 		assert.match(await fresh.source_read.execute("id", { url: `${base}/resume`, query: "connector" }).then((r: any) => r.content[0].text), /times out after 30 seconds/);
 	});
+
+	it("research_checkpoint reports the rubric and holds PROCEED while a mandatory item is open", async () => {
+		const ctx = { cwd: home };
+		const notes = (p: Record<string, unknown>) => tools.research_notes.execute("id", p, undefined, undefined, ctx).then((r: any) => r.content[0].text as string);
+		await notes({ slug: "rubric-run", op: "plan", question: "q", sub_questions: ["a?"], rubric: [{ text: "names a number" }] });
+		const args = { depth: "quick", round: 1, slug: "rubric-run", total_sources: 9, sub_questions: [{ question: "a?", answered: true, confidence: 95, source_count: 9, best_source_tier: 1 }] };
+		const check = () => tools.research_checkpoint.execute("id", args, undefined, undefined, ctx).then((r: any) => r.content[0].text as string);
+		const open = await check();
+		assert.match(open, /Rubric: 0\/1 satisfied \(open: R1 mandatory\)/);
+		assert.match(open, /CONTINUE SEARCHING/);
+		await notes({ slug: "rubric-run", op: "rubric_check", rubric_id: "R1", satisfied: true });
+		assert.match(await check(), /Rubric: 1\/1 satisfied/);
+	});
 });
