@@ -27,7 +27,7 @@ The retry queue sends each request through the backoff gate, which either admits
 ```mermaid
 flowchart LR
   A[Request] --> B[Retry queue]
-  B --> C[Backoff gate]
+  B --> C{Backoff gate}
   C -->|allowed| D[Upstream]
   C -->|exhausted| E[Dead letter store]
 ```

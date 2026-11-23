@@ -10,6 +10,7 @@ description: "Changelog for pi-deep-research skill"
 - Diagram rendering at finalize is on by default; a missing mmdc warns instead of failing.
 
 ### Added
+- `report.html` diagrams are interactive: hover or focus a part to light its connections, click for what the report says about it, step through the flow, zoom and pan, and read every part on a plate. Same file, no network; print keeps the static drawing.
 - Editorial flowcharts draw decision nodes (`{text}`) as diamonds: at most three exits, every exit labelled, connectors on the outline. Both skins pass the skill's gates.
 - Calc blocks: a fenced `calc` block holds a report's arithmetic. Inputs cite a source and must appear in its archived text, `(derived: name)` sentences must print the computed value, and the page draws the block as a table.
 - Publication warnings: deep reports need a "How it works" section of three explanatory paragraphs, and every diagram label must be a term the prose uses.

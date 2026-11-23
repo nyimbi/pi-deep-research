@@ -28,8 +28,19 @@ reports.
 - **Fonts.** Offline means no web-font link. The CSS names Instrument Serif and Geist first and falls back to
   Georgia and the system sans, so a machine with the fonts installed gets the skill's look and any other machine
   still gets a clean page. Font files are not embedded: their licences are not in this repository.
-- **Scripts.** One small inline script opens a citation's passage. Without it every link still works and the
-  appendix lists every passage.
+- **Scripts.** One small inline script opens a citation's passage and drives the diagrams. Without it every link
+  still works, the appendix lists every passage, and each diagram is a plain drawing.
+- **Interactive diagrams (machine-works doctrine).** An editorial flowchart or state diagram is inlined as live SVG,
+  not an `<img>`, in both skins. The drawer tags each part (`g.node`), connector (`data-from`, `data-to`, `data-back`),
+  label and the legend, so the page needs no layout knowledge. Hover or focus lights a part and its neighbours and
+  dims the rest; a click pins it and shows what the report says about it (the first prose sentence naming it, found
+  at build time) plus what it takes from and hands to, read from the connectors; a step control walks the flow in
+  dependency order with the single accent on the current part; the buttons, the keyboard (arrows, Escape, + - 0), the
+  Ctrl or Cmd wheel and a pinch zoom up to 5x, and a drag pans. A plate of buttons beneath names every part. The
+  page crops each drawing to its parts (dropping the legend, which the plate replaces) so text is legible in the
+  column. In print the controls go and the light drawing shows. Sequence diagrams and Mermaid fallbacks have no
+  parts to point at and stay images. Drag-to-pan and pinch are not covered by a test; the other states are, in
+  headless Chrome.
 
 ## Rejected
 

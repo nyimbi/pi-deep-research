@@ -305,7 +305,7 @@ function layoutBlock(nodes: GNode[], edges: GEdge[], lr: boolean, skin: Skin, op
 	const stroke = (e: GEdge, d: string) => {
 		const color = e.style === "thick" ? skin.accent : skin.muted;
 		const marker = e.style === "line" ? "" : ` marker-end="url(#${e.style === "thick" ? "arrow-accent" : "arrow"})"`;
-		paths.push(`<path d="${d}" fill="none" stroke="${color}" stroke-width="${e.style === "thick" ? 1.6 : 1.2}"${e.style === "dotted" ? ' stroke-dasharray="5,4"' : ""}${marker}/>`);
+		paths.push(`<path d="${d}" data-from="${e.from}" data-to="${e.to}"${e.back ? ' data-back="1"' : ""} fill="none" stroke="${color}" stroke-width="${e.style === "thick" ? 1.6 : 1.2}"${e.style === "dotted" ? ' stroke-dasharray="5,4"' : ""}${marker}/>`);
 	};
 	for (const [idx, e] of edges.entries()) {
 		if (e.back) continue;
@@ -416,7 +416,7 @@ function layoutBlock(nodes: GNode[], edges: GEdge[], lr: boolean, skin: Skin, op
 	const focal = opts.focalOk && hub && degree(hub) >= 3 ? hub.id : null;
 	const kinds = new Set<string>();
 	const rects = new Map<string, Rect>();
-	const boxesSvg = nodes.map((n) => {
+	const rawBoxes = nodes.map((n) => {
 		const [x, y, w, h] = lr ? [n.m, n.c, n.msize, n.csize] : [n.c, n.m, n.csize, n.msize];
 		rects.set(n.id, { x, y, w, h });
 		if (n.pseudo === "start") return `<circle cx="${x + w / 2}" cy="${y + h / 2}" r="8" fill="${skin.ink}"/>`;
@@ -430,7 +430,8 @@ function layoutBlock(nodes: GNode[], edges: GEdge[], lr: boolean, skin: Skin, op
 		}
 		return `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="6" fill="${skin.paper}"/><rect x="${x}" y="${y}" width="${w}" height="${h}" rx="6" fill="${fill}" stroke="${stroke}" stroke-width="1"/><text x="${x + w / 2}" y="${y + h / 2 + 4}" fill="${skin.ink}" font-size="12" font-weight="600" font-family="${SANS}" text-anchor="middle">${esc(n.label)}</text>`;
 	});
-	const labelSvg = labels.map((l) => `<rect x="${l.x - l.w / 2}" y="${l.y - 7}" width="${l.w}" height="14" rx="2" fill="${skin.paper}"/><text x="${l.x}" y="${l.y + 3}" fill="${skin.soft}" font-size="8" font-family="${MONO}" text-anchor="middle" letter-spacing="0.06em">${esc(l.text)}</text>`);
+	const boxesSvg = rawBoxes.map((b, i) => (nodes[i]!.pseudo ? b : `<g class="node" data-node="${esc(nodes[i]!.id)}" data-label="${esc(nodes[i]!.label)}">${b}</g>`));
+	const labelSvg = labels.map((l) => `<g class="lbl" data-from="${edges[l.edge]!.from}" data-to="${edges[l.edge]!.to}"><rect x="${l.x - l.w / 2}" y="${l.y - 7}" width="${l.w}" height="14" rx="2" fill="${skin.paper}"/><text x="${l.x}" y="${l.y + 3}" fill="${skin.soft}" font-size="8" font-family="${MONO}" text-anchor="middle" letter-spacing="0.06em">${esc(l.text)}</text></g>`);
 	return { w: lr ? mainEnd : crossEnd, h: lr ? crossEnd : mainEnd, paths, labelSvg, boxesSvg, kinds, focal: focal !== null, rects };
 }
 
@@ -565,11 +566,11 @@ export function editorialSvg(source: string, opts: { slug: string; title: string
 	const legend = kinds.size > 1;
 	const height = snap(body + (legend ? 60 : 0));
 	const legendSvg = legend
-		? `<line x1="30" y1="${body}" x2="${width - 30}" y2="${body}" stroke="${skin.rule}" stroke-width="0.8"/><text x="30" y="${body + 20}" fill="${skin.muted}" font-size="8" font-family="${MONO}" letter-spacing="0.14em">LEGEND</text>` +
+		? `<g class="legend"><line x1="30" y1="${body}" x2="${width - 30}" y2="${body}" stroke="${skin.rule}" stroke-width="0.8"/><text x="30" y="${body + 20}" fill="${skin.muted}" font-size="8" font-family="${MONO}" letter-spacing="0.14em">LEGEND</text>` +
 			[...kinds].map((k, i) => {
 				const [fill, stroke] = k === "FOCAL" ? [skin.accentTint, skin.accent] : k === "STORE" ? [skin.store, skin.muted] : [skin.node, skin.ink];
 				return `<rect x="${100 + i * 160}" y="${body + 11}" width="16" height="12" rx="2" fill="${fill}" stroke="${stroke}"/><text x="${124 + i * 160}" y="${body + 20}" fill="${skin.soft}" font-size="8" font-family="${MONO}" letter-spacing="0.08em">${k}</text>`;
-			}).join("")
+			}).join("") + "</g>"
 		: "";
 	const svg = [
 		`<svg viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="${opts.slug}-title ${opts.slug}-desc">`,

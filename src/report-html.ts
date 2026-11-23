@@ -6,6 +6,7 @@
  */
 import { LIGHT, DARK } from "./diagram-style.ts";
 import { captionOf, mermaidBlocks } from "./diagrams.ts";
+import { DIAGRAM_CSS, DIAGRAM_SCRIPT, interactiveFigure } from "./report-diagram.ts";
 import { parseCalc } from "./calc.ts";
 import { normalizeUrl } from "./normalize.ts";
 
@@ -103,6 +104,8 @@ export function markdownToHtml(report: string, options: ReportPageOptions = {}):
 	const diagrams = new Map((options.diagrams ?? []).map((d) => [d.index, d]));
 	const blocks = mermaidBlocks(report);
 	const byStart = new Map(blocks.map((b) => [b.start, b]));
+	let prose: string | null = null;
+	const proseOnly = () => (prose ??= blocks.reduceRight((r, b) => r.slice(0, b.start) + r.slice(b.end), report));
 	const headings: Heading[] = [];
 	const used = new Set<string>();
 	const firstSentence = new Map<string, string>();
@@ -136,7 +139,9 @@ export function markdownToHtml(report: string, options: ReportPageOptions = {}):
 				const caption = captionOf(report, block) ?? `Diagram ${block.index}`;
 				const uri = (svg: string) => `data:image/svg+xml;base64,${Buffer.from(svg).toString("base64")}`;
 				const dark = d.dark ? `<source media="(prefers-color-scheme: dark)" srcset="${uri(d.dark)}">` : "";
-				out.push(`<figure class="diagram"><picture>${dark}<img alt="${esc(caption)}" src="${uri(d.svg)}"></picture></figure>`);
+				const live = interactiveFigure({ n: block.index, caption, svg: d.svg, dark: d.dark, prose: proseOnly() });
+				if (live) out.push(live);
+				else out.push(`<figure class="diagram"><picture>${dark}<img alt="${esc(caption)}" src="${uri(d.svg)}"></picture></figure>`);
 			} else out.push(`<pre class="mermaid-source"><code>${esc(block.source)}</code></pre>`);
 			continue;
 		}
@@ -256,7 +261,7 @@ blockquote{border-left:2px solid var(--accent);padding:.1rem 0 .1rem 1rem;color:
 table{border-collapse:collapse;width:100%;font-size:.88rem;font-variant-numeric:tabular-nums}
 th{font:500 .7rem/1.3 var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--soft);text-align:left}
 th,td{padding:.55rem .75rem;border-bottom:1px solid var(--rule);vertical-align:top}tr:last-child td{border-bottom:0}
-figure.diagram{margin:1.4rem 0;padding:1rem;background:var(--paper);border:1px solid var(--rule);border-radius:6px}figure.diagram img{display:block;max-width:100%;height:auto;margin:0 auto}
+figure.diagram{margin:1.4rem 0;padding:1rem;background:var(--paper);border:1px solid var(--rule);border-radius:6px}figure.diagram img{display:block;max-width:100%;height:auto;margin:0 auto}${DIAGRAM_CSS}
 details.passage{border:1px solid var(--rule);border-radius:6px;padding:.7rem 1rem;margin:0 0 .8rem;font-size:.88rem}
 details.passage summary{cursor:pointer;color:var(--ink)}details.passage[open]{background:var(--tint)}
 details.passage blockquote{margin:.7rem 0 .3rem}.meta{font:.72rem var(--mono);color:var(--soft)}
@@ -270,7 +275,7 @@ body{font-size:10.5pt;line-height:1.5}.page{display:block;max-width:none;padding
 details.passage{break-inside:avoid}details.passage:not([open])>*:not(summary){display:block}a{text-decoration:none}a.cite::after{content:""}}`;
 };
 
-const SCRIPT = `document.addEventListener("click",function(e){var a=e.target.closest&&e.target.closest("a.cite");if(!a)return;var d=document.getElementById("ref-"+a.dataset.ref);if(!d)return;e.preventDefault();d.open=true;d.scrollIntoView({block:"center"});history.replaceState(null,"","#ref-"+a.dataset.ref)});`;
+const SCRIPT = `${DIAGRAM_SCRIPT}document.addEventListener("click",function(e){var a=e.target.closest&&e.target.closest("a.cite");if(!a)return;var d=document.getElementById("ref-"+a.dataset.ref);if(!d)return;e.preventDefault();d.open=true;d.scrollIntoView({block:"center"});history.replaceState(null,"","#ref-"+a.dataset.ref)});`;
 
 export function renderReportPage(report: string, options: ReportPageOptions = {}): { html: string; headings: Heading[]; cited: number } {
 	const converted = markdownToHtml(report, options);

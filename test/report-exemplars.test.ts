@@ -48,7 +48,11 @@ describe("exemplar reports are the standard a new report is held to", () => {
 				assert.match(html, /<h2 id="how-it-works">/);
 				assert.match(html, /<th>Calculation<\/th>/);
 				assert.match(html, /sup class="derived"/);
-				if (file.startsWith("decision")) assert.match(html, /<picture><source media="\(prefers-color-scheme: dark\)" srcset="data:image\/svg\+xml;base64,/);
+				if (file.startsWith("decision")) {
+					assert.match(html, /<figure class="diagram ix"/);
+					assert.equal((html.match(/<svg class="dg"/g) ?? []).length, 2, "light and dark skins inline");
+					assert.match(html, /<polygon points="[\d., ]+" fill="rgba\(191,69,32/, "the gate is drawn as the focal diamond");
+				}
 				assert.deepEqual(result.warnings.filter((w) => /drawn by Mermaid/.test(w)), []);
 				assert.equal((html.match(/class="passage"/g) ?? []).length, file.startsWith("decision") ? 2 : 3);
 				assert.ok((await readdir(out)).includes("research-package.json"));

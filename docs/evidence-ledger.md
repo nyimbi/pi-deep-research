@@ -148,6 +148,10 @@ Finalize writes `report.html` beside the README: one file, no network. It has a 
 skins (the same tokens as the diagrams), a print stylesheet, every editorial diagram inlined in both skins, and a
 colophon with the question, depth, confidence, evidence grade, source counts and what was not checked.
 
+Flowcharts and state diagrams are live: hover or focus a part to light its connections, click it for the report's own
+sentence about it, step through the flow, zoom and pan, or pick any part from the plate beneath. Sequence diagrams
+stay static.
+
 Every citation to an archived source opens the passage it rests on: the paragraph of the archived text that shares
 the most words with the citing sentence, with the source's tier, URL and archive file. The same passages sit in a
 "Passages" section, so print and PDF carry them. A source with no matching paragraph says so instead of showing
