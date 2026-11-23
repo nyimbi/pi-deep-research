@@ -132,6 +132,7 @@ export function checkDiagrams(report: string, ledger: SourceLedger): string[] {
 
 const EDGE = /-\.->|\.->|==>|-->|---|--[ox]/g;
 const LABELED = /(?:-->|---|==>|-\.->)\s*\|[^|]+\||--\s+[^-|>\s][^-|>]*?\s+-->|==\s+[^=|>\s][^=|>]*?\s+==>|-\.\s+[^-.|>\s][^|>]*?\s+\.->/g;
+const MAX_NODES = 15;
 const NOT_EDGE_LINE = /^(?:subgraph|end\b|style|classDef|class|click|linkStyle|direction|%%)/;
 
 function proseLine(line: string | undefined): boolean {
@@ -158,12 +159,42 @@ export function lintDiagrams(report: string): string[] {
 				edges += (line.match(EDGE) ?? []).length;
 				labeled += (line.match(LABELED) ?? []).length;
 			}
+			const nodes = new Set<string>();
+			for (const line of lines) {
+				if (!line || NOT_EDGE_LINE.test(line) || !EDGE.test(line)) continue;
+				EDGE.lastIndex = 0;
+				for (const seg of line.split(EDGE)) {
+					const id = /^\s*(?:\|[^|]*\|)?\s*&?\s*([A-Za-z_]\w*)/.exec(seg.replace(/^\s*\|[^|]*\|/, ""));
+					if (id) nodes.add(id[1]);
+				}
+			}
+			if (nodes.size > MAX_NODES) out.push(`${label} has ${nodes.size} nodes; past ${MAX_NODES} a flowchart stops being read, so split it or drop what the argument does not turn on`);
 			if (edges >= 2 && labeled * 2 < edges) out.push(`${label} labels ${labeled} of ${edges} arrows; an unlabelled arrow says only "related"`);
 		} else if (kind === "sequenceDiagram") {
 			const bare = lines.filter((l) => /^[^%]*?(?:->>|-->>|->|-->|-x|--x|-\)|--\))/.test(l) && !/^(?:participant|actor|note|loop|alt|opt|par|rect|autonumber|activate|deactivate)\b/i.test(l) && !l.includes(":"));
 			if (bare.length) out.push(`${label} has ${bare.length} message(s) with no text`);
 		}
 	}
+	const seen = new Map<string, number>();
+	for (const block of mermaidBlocks(report)) {
+		const key = block.source.replace(/\s+/g, " ").trim();
+		const first = seen.get(key);
+		if (first) out.push(`diagram ${block.index} repeats diagram ${first}`);
+		else seen.set(key, block.index);
+	}
 	if (/^##\s+Comparison\b/im.test(report) && !mermaidBlocks(report).length) out.push("the Comparison section has no diagram; a before and after drawing shows what each option adds or removes");
 	return out;
+}
+
+/** Adds an image link after each fenced diagram whose SVG was written, so a viewer without Mermaid still shows the picture. */
+export function embedRenderedDiagrams(report: string, rendered: Iterable<number>): string {
+	const ok = new Set(rendered);
+	let out = "";
+	let at = 0;
+	for (const block of mermaidBlocks(report)) {
+		if (!ok.has(block.index)) continue;
+		out += `${report.slice(at, block.end)}\n\n![Diagram ${block.index}](diagrams/diagram-${block.index}.svg)`;
+		at = block.end;
+	}
+	return out + report.slice(at);
 }

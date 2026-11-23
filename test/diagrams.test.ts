@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { checkDiagrams, lintDiagrams, mermaidBlocks } from "../src/diagrams.ts";
+import { checkDiagrams, embedRenderedDiagrams, lintDiagrams, mermaidBlocks } from "../src/diagrams.ts";
 import { SourceLedger } from "../src/ledger.ts";
 
 const ledger = () => {
@@ -105,5 +105,30 @@ describe("template examples", () => {
 		assert.ok(blocks.length >= 1, "the template carries at least one example");
 		assert.deepEqual(checkDiagrams(template, ledger()), []);
 		assert.deepEqual(lintDiagrams(template.replace(/## Comparison[^\n]*/g, "## Comparisons")), []);
+	});
+});
+
+describe("diagram density, repeats and embedding", () => {
+	const chain = (n: number) => "flowchart LR\n" + Array.from({ length: n - 1 }, (_, i) => `  N${i} -->|step| N${i + 1}`).join("\n");
+	const cap = "This drawing shows the request path through each stage in order.";
+	it("warns past 15 nodes, not at 15", () => {
+		assert.match(lintDiagrams(`${cap}\n\n\`\`\`mermaid\n${chain(16)}\n\`\`\``).join("\n"), /16 nodes/);
+		assert.deepEqual(lintDiagrams(`${cap}\n\n\`\`\`mermaid\n${chain(15)}\n\`\`\``), []);
+	});
+	it("counts nodes on chained arrows and ignores repeated ids", () => {
+		const src = "flowchart LR\n  A -->|x| B -->|y| C\n  A -->|z| C";
+		assert.deepEqual(lintDiagrams(`${cap}\n\n\`\`\`mermaid\n${src}\n\`\`\``), []);
+	});
+	it("flags a diagram repeated verbatim", () => {
+		const one = `${cap}\n\n\`\`\`mermaid\nflowchart LR\n  A -->|x| B\n\`\`\``;
+		assert.match(lintDiagrams(`${one}\n\n${one}`).join("\n"), /diagram 2 repeats diagram 1/);
+	});
+	it("links an image after exactly the diagrams that rendered", () => {
+		const b = (t: string) => `\`\`\`mermaid\nflowchart LR\n  A -->|${t}| B\n\`\`\``;
+		const out = embedRenderedDiagrams(`x\n\n${b("1")}\n\nmid\n\n${b("2")}\n\nend`, [2]);
+		assert.ok(!out.includes("diagram-1.svg"));
+		assert.equal(out.match(/!\[Diagram 2\]\(diagrams\/diagram-2\.svg\)/g)?.length, 1);
+		assert.ok(out.indexOf("diagram-2.svg") > out.lastIndexOf("-->|2|"));
+		assert.equal(embedRenderedDiagrams("no diagrams", [1]), "no diagrams");
 	});
 });

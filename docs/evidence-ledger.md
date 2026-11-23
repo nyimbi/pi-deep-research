@@ -86,8 +86,13 @@ to the report, so the README stays the text the author wrote.
 **Lint (warnings only).** `lintDiagrams` warns when a diagram has no caption sentence of five words or more
 directly before or after it, when most flowchart arrows carry no label (`-->|text|`, `-- text -->`,
 `==>|text|` and `-. text .->` all count), when a sequence message has no text, and when a `## Comparison`
-section has no diagram. These are style, so they never fail a strict run. The template's comparison
+section has no diagram, when a flowchart has more than 15 nodes, and when a diagram repeats an earlier one
+verbatim. These are style, so they never fail a strict run. The template's comparison
 skeleton (before and after, the added edges styled) is tested to stay valid.
+
+When diagrams render, the package also gets `README.rendered.md`: the report with an image link to
+`diagrams/diagram-N.svg` after each rendered block, for viewers that do not draw Mermaid. `README.md` stays the
+report that the gates checked.
 
 **Render check.** On by default (`DIAGRAM_RENDER=off` or `diagrams.render: false` disables it), finalize also renders each block with
 `mmdc` (`src/diagram-render.ts`). A parse error fails a strict run with mmdc's own message, and each good

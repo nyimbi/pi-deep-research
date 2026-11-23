@@ -167,6 +167,7 @@ describe("writeResearchPackage", () => {
 		const { readFile } = await import("node:fs/promises");
 		const dir = join(root, "docs/research/rd-good/diagrams");
 		assert.equal(await readFile(join(dir, "diagram-1.svg"), "utf8"), "<svg id=\"ok\"/>");
+		assert.match(await readFile(join(good.packagePath, "README.rendered.md"), "utf8"), /!\[Diagram 1\]\(diagrams\/diagram-1\.svg\)/);
 		assert.match(await readFile(join(dir, "diagram-1.mmd"), "utf8"), /flowchart LR/);
 		assert.match(await readFile(join(dir, "evidence-graph.mmd"), "utf8"), /example\.com/);
 		assert.equal(await readFile(join(dir, "evidence-graph.svg"), "utf8"), "<svg id=\"ok\"/>");

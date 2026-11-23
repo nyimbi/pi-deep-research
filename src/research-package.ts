@@ -12,7 +12,7 @@ import type { EntailmentReport } from "./entailment.ts";
 import { checkReportAgainstNotes, loadNotes } from "./notes.ts";
 import { CONFIDENCE_CAP, gradeFindings, type FindingGrade, type Grade } from "./grade.ts";
 import { checkClaims, describeClaimIssues } from "./claim-check.ts";
-import { checkDiagrams, lintDiagrams, mermaidBlocks } from "./diagrams.ts";
+import { checkDiagrams, embedRenderedDiagrams, lintDiagrams, mermaidBlocks } from "./diagrams.ts";
 import { evidenceGraph } from "./evidence-graph.ts";
 import type { DiagramRenderer } from "./diagram-render.ts";
 import type { DocsQaRunner } from "./docs-qa.ts";
@@ -366,6 +366,7 @@ export async function writeResearchPackage(options: FinalizeOptions): Promise<Fi
 			await writeFile(join(packagePath, "diagrams", `diagram-${r.index}.mmd`), r.source, "utf8");
 			await writeFile(join(packagePath, "diagrams", `diagram-${r.index}.svg`), r.svg, "utf8");
 		}
+		await writeFile(join(packagePath, "README.rendered.md"), embedRenderedDiagrams(report, renders.map((r) => r.index)), "utf8");
 	}
 	await writeFile(indexPath, index, "utf8");
 	await writeFile(readmePath, report, "utf8");
