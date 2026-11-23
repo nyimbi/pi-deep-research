@@ -49,6 +49,21 @@ describe("RawStore", () => {
 			/exceeds/,
 		);
 	});
+	it("revalidates a redirect before following it", async () => {
+		const store = new RawStore(await tempDir());
+		let calls = 0;
+		await assert.rejects(
+			store.capture("https://public.example/redirect", {
+				policy,
+				fetchImpl: (async () => {
+					calls += 1;
+					return new Response(null, { status: 302, headers: { Location: "http://127.0.0.1/secret" } });
+				}) as typeof fetch,
+			}),
+			UnsafeUrlError,
+		);
+		assert.equal(calls, 1);
+	});
 	it("refuses a private URL before fetching", async () => {
 		const store = new RawStore(await tempDir());
 		await assert.rejects(

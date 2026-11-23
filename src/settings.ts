@@ -25,6 +25,7 @@ export interface BreakerSettings {
 
 export interface SearxngSettings {
 	baseUrl: string;
+	fallbackUrls?: string[];
 	language: string;
 	categories: string;
 	safeSearch: number;
@@ -80,7 +81,7 @@ export const DEFAULT_SETTINGS: ResearchSettings = {
 		extractTtlMs: 604_800_000,
 	},
 	breaker: { failures: 3, cooldownMs: 60_000 },
-	searxng: { baseUrl: "", language: "en", categories: "general", safeSearch: 0, engines: [] },
+	searxng: { baseUrl: "", fallbackUrls: [], language: "en", categories: "general", safeSearch: 0, engines: [] },
 	ollama: { enabled: true, host: "127.0.0.1", port: "11434" },
 	archiveRoot: join("docs", "research"),
 	archiveMaxBytes: 5 * 1024 * 1024,
@@ -196,6 +197,9 @@ export async function loadSettings(options: LoadSettingsOptions = {}): Promise<R
 		},
 		searxng: {
 			baseUrl: (env.SEARXNG_BASE_URL ?? text(searxngRaw.base_url, DEFAULT_SETTINGS.searxng.baseUrl, "searxng.base_url")).replace(/\/+$/, ""),
+			fallbackUrls: (env.SEARXNG_FALLBACK_URLS ? env.SEARXNG_FALLBACK_URLS.split(",") : strings(searxngRaw.fallback_urls, DEFAULT_SETTINGS.searxng.fallbackUrls ?? [], "searxng.fallback_urls"))
+				.map((url) => url.trim().replace(/\/+$/, ""))
+				.filter(Boolean),
 			language: text(searxngRaw.language, DEFAULT_SETTINGS.searxng.language, "searxng.language"),
 			categories: text(searxngRaw.categories, DEFAULT_SETTINGS.searxng.categories, "searxng.categories"),
 			safeSearch: number(searxngRaw.safe_search, DEFAULT_SETTINGS.searxng.safeSearch, "searxng.safe_search"),

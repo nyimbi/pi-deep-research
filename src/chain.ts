@@ -251,7 +251,7 @@ export async function chainExtract(
 		}
 	}
 
-	const result = await extractWithFetch(url, opts.fetchImpl);
+	const result = await extractWithFetch(url, opts.fetchImpl, { policy: opts.safety });
 	opts.ledger?.recordExtract(url, result);
 	if (cacheKey) await opts.cache!.set(cacheKey, result, opts.cacheTtlMs ?? 604_800_000);
 	return result;

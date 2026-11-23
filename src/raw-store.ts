@@ -53,12 +53,23 @@ export class RawStore {
 	}
 
 	async capture(url: string, options: CaptureOptions = {}): Promise<RawCapture> {
-		if (options.policy) await assertFetchableUrlResolved(url, options.policy);
 		const maxBytes = options.maxBytes ?? 5 * 1024 * 1024;
-		const response = await (options.fetchImpl ?? globalThis.fetch)(url, {
-			headers: { "User-Agent": "Mozilla/5.0 (compatible; PiDeepResearch/1.0)", Accept: "*/*" },
-			redirect: "follow",
-		});
+		let current = url;
+		let response: Response | null = null;
+		for (let hop = 0; hop <= 5; hop += 1) {
+			// Revalidate every hop: a public URL may redirect to a private address.
+			if (options.policy) await assertFetchableUrlResolved(current, options.policy);
+			response = await (options.fetchImpl ?? globalThis.fetch)(current, {
+				headers: { "User-Agent": "Mozilla/5.0 (compatible; PiDeepResearch/1.0)", Accept: "*/*" },
+				redirect: "manual",
+			});
+			if (![301, 302, 303, 307, 308].includes(response.status)) break;
+			const location = response.headers.get("location");
+			if (!location) throw new Error(`redirect without a location for ${current}`);
+			current = new URL(location, current).toString();
+			response = null;
+		}
+		if (!response) throw new Error(`too many redirects for ${url}`);
 		if (!response.ok) throw new Error(`page capture failed ${response.status} for ${url}`);
 		const declared = Number(response.headers.get("content-length") ?? "0");
 		if (declared > maxBytes) throw new Error(`page exceeds ${maxBytes} bytes for ${url}`);

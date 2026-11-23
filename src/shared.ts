@@ -1,3 +1,4 @@
+import { assertFetchableUrlResolved, type UrlPolicy } from "./runtime.ts";
 import type { ExtractResult, SearchResult } from "./types.ts";
 
 export const MAX_WORDS = 8000;
@@ -54,17 +55,27 @@ export function pickMeta(meta: Record<string, unknown> | undefined, keys: string
 export async function extractWithFetch(
 	url: string,
 	fetchImpl: typeof fetch = globalThis.fetch,
-	options: { maxBytes?: number } = {},
+	options: { maxBytes?: number; policy?: UrlPolicy } = {},
 ): Promise<ExtractResult> {
-	const resp = await fetchImpl(url, {
-		headers: {
-			"User-Agent": "Mozilla/5.0 (compatible; PiDeepResearch/1.0)",
-			Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-		},
-		redirect: "follow",
-		signal: AbortSignal.timeout(15000),
-	});
-
+	let current = url;
+	let resp: Response | null = null;
+	for (let hop = 0; hop <= 5; hop += 1) {
+		if (options.policy) await assertFetchableUrlResolved(current, options.policy);
+		resp = await fetchImpl(current, {
+			headers: {
+				"User-Agent": "Mozilla/5.0 (compatible; PiDeepResearch/1.0)",
+				Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+			},
+			redirect: "manual",
+			signal: AbortSignal.timeout(15000),
+		});
+		if (![301, 302, 303, 307, 308].includes(resp.status)) break;
+		const location = resp.headers.get("location");
+		if (!location) throw new Error(`redirect without a location for ${current}`);
+		current = new URL(location, current).toString();
+		resp = null;
+	}
+	if (!resp) throw new Error(`too many redirects for ${url}`);
 	if (!resp.ok) throw new Error(`Failed to fetch ${url}: ${resp.status}`);
 	const contentType = (resp.headers.get("content-type") ?? "").toLowerCase();
 	if (contentType.includes("application/pdf")) {

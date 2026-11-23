@@ -41,6 +41,27 @@ describe("searxng", () => {
 		assert.equal(url.searchParams.get("q"), "hello");
 		assert.equal(url.searchParams.get("time_range"), "week");
 	});
+	it("tries the local instance first and falls back to the next instance", async () => {
+		const localFirst = createSearxngProvider(
+			{ ...searxng, baseUrl: "http://local.example", fallbackUrls: ["https://fleet.example"] },
+			mockFetch(() => json({ results: [{ title: "Local", url: "https://local", content: "s" }] })),
+		);
+		const localResults = await localFirst.search({ query: "q", maxResults: 2 });
+		assert.equal(localResults[0].title, "Local");
+		assert.equal(calls.length, 1);
+
+		const fallback = createSearxngProvider(
+			{ ...searxng, baseUrl: "http://local.example", fallbackUrls: ["https://fleet.example"] },
+			mockFetch((url) =>
+				url.startsWith("http://local")
+					? new Response("down", { status: 500 })
+					: json({ results: [{ title: "Fleet", url: "https://fleet", content: "s" }] }),
+			),
+		);
+		const fleetResults = await fallback.search({ query: "q", maxResults: 2 });
+		assert.equal(fleetResults[0].title, "Fleet");
+		assert.equal(calls.length, 3);
+	});
 	it("names the JSON API setting when the instance returns HTML", async () => {
 		const provider = createSearxngProvider(searxng, mockFetch(() => new Response("<!doctype html>", { status: 403 })));
 		await assert.rejects(provider.search({ query: "q", maxResults: 1 }), /JSON API is disabled/);

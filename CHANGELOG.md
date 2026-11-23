@@ -14,6 +14,10 @@ description: "Changelog for pi-deep-research skill"
   tools never returned.
 - Raw page/document capture at extraction time, archived beside the extracted
   Markdown as a second index row (HTML, PDF, JSON, XML or text).
+- SearXNG supports an ordered instance list: `base_url` first, then
+  `fallback_urls`, so a local instance can front the fleet one.
+- Redirects are revalidated hop by hop in raw capture and in the basic
+  extraction fallback, closing an SSRF path through a public redirect.
 - Native providers: SearXNG, Ollama web search, Jina Reader (extraction),
   arXiv, Semantic Scholar, OpenAlex, Crossref and Europe PMC.
 - Retry with exponential backoff and Retry-After, a disk cache for searches and

@@ -72,7 +72,7 @@ Search runs on a pluggable provider chain. Built-in providers:
 
 | Provider | Setup | Channels |
 |----------|-------|----------|
-| `searxng` | `searxng.base_url` or `SEARXNG_BASE_URL`; the instance must allow `format=json` | Metasearch across the instance's engines |
+| `searxng` | `searxng.base_url` (tried first) and `fallback_urls`/`SEARXNG_FALLBACK_URLS`; each instance must allow `format=json` | Metasearch across the instance's engines; a local instance can front a remote one |
 | `ollama` | A running Ollama daemon signed in to the cloud service; `OLLAMA_HOST`/`OLLAMA_PORT` | Ollama's experimental web search and fetch |
 | `tavily` | `TAVILY_API_KEY` (free: 1000 req/month) | Web search and full-text extract |
 | `brave` | `BRAVE_API_KEY` (free: 2000 req/month) | Web search |
@@ -83,6 +83,13 @@ Search runs on a pluggable provider chain. Built-in providers:
 | `openalex` | Optional `OPENALEX_API_KEY`, `CROSSREF_MAILTO` | Works across all fields |
 | `crossref` | Optional `CROSSREF_MAILTO` (polite pool) | DOI and publisher metadata |
 | `europe-pmc` | None | Biomedical and preprint records |
+
+For SearXNG, `base_url` is tried first and each `fallback_urls` entry after it;
+the first non-empty response wins. The configured local instance is
+`http://127.0.0.1:3501` (JSON is enabled in its settings), with the fleet
+instance as the fallback. Start the local service with its own venv if it is
+not running; when it is down the provider fails over without failing the
+search.
 
 Set `sources: "academic"` on `web_search` to query the five academic
 providers, or `sources: "all"` with `mode: "merge"` to merge every configured
@@ -98,7 +105,7 @@ Configure the chain once in a config file, or per-session with an env var:
   "retries": 2,
   "cache": { "enabled": true, "search_ttl_seconds": 3600, "extract_ttl_seconds": 604800 },
   "breaker": { "failures": 3, "cooldown_seconds": 60 },
-  "searxng": { "base_url": "https://search.example.org", "language": "en" },
+  "searxng": { "base_url": "http://127.0.0.1:3501", "fallback_urls": ["https://search.example.org"], "language": "en" },
   "ollama": { "enabled": true },
   "archive": { "root": "docs/research", "max_bytes": 5242880 },
   "safety": { "allow_private_hosts": false, "allowed_ports": [80, 443] },

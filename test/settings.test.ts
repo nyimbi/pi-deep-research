@@ -10,7 +10,7 @@ const CONFIG = JSON.stringify({
 	merge: true,
 	cache: { enabled: true, dir: "/tmp/pi-cache", search_ttl_seconds: 120, extract_ttl_seconds: 3600 },
 	breaker: { failures: 5, cooldown_seconds: 30 },
-	searxng: { base_url: "https://sx.example", engines: ["duckduckgo"], categories: "general" },
+	searxng: { base_url: "http://127.0.0.1:3501", fallback_urls: ["https://search.example.org"], engines: ["duckduckgo"], categories: "general" },
 	ollama: { enabled: false },
 	safety: { allow_private_hosts: false, allowed_hosts: ["Docs.Internal"], allowed_ports: [443] },
 	budget: { max_searches: 10, max_extracts: 4 },
@@ -27,7 +27,8 @@ describe("loadSettings", () => {
 		assert.equal(settings.cache.searchTtlMs, 120_000);
 		assert.equal(settings.cache.extractTtlMs, 3_600_000);
 		assert.equal(settings.breaker.cooldownMs, 30_000);
-		assert.equal(settings.searxng.baseUrl, "https://sx.example");
+		assert.equal(settings.searxng.baseUrl, "http://127.0.0.1:3501");
+		assert.deepEqual(settings.searxng.fallbackUrls, ["https://search.example.org"]);
 		assert.deepEqual(settings.safety.allowedHosts, ["docs.internal"]);
 		assert.equal(settings.budget.maxExtracts, 4);
 	});
@@ -43,6 +44,7 @@ describe("loadSettings", () => {
 				SEARCH_PROVIDERS: "ollama,searxng",
 				SEARCH_TIMEOUT_MS: "90000",
 				SEARXNG_BASE_URL: "https://env.example",
+				SEARXNG_FALLBACK_URLS: "https://fleet.example",
 				OLLAMA_HOST: "10.0.0.1",
 				OLLAMA_PORT: "9999",
 				OLLAMA_WEB_SEARCH: "off",
@@ -52,6 +54,7 @@ describe("loadSettings", () => {
 		assert.deepEqual(settings.providers, ["ollama", "searxng"]);
 		assert.equal(settings.timeoutMs, 90_000);
 		assert.equal(settings.searxng.baseUrl, "https://env.example");
+		assert.deepEqual(settings.searxng.fallbackUrls, ["https://fleet.example"]);
 		assert.equal(settings.ollama.host, "10.0.0.1");
 		assert.equal(settings.ollama.port, "9999");
 		assert.equal(settings.ollama.enabled, false);
