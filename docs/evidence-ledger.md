@@ -102,11 +102,21 @@ connectors with r=8 elbows, one port per connector, all-caps arrow labels on a m
 legend strip, and an accessible `<title>` and `<desc>` taken from the caption sentence. Each drawn diagram is
 written as `diagrams/diagram-N.svg` and a standalone page `diagrams/diagram-N.html` in the skill's page shape.
 
-It draws what it can draw correctly: `flowchart LR` or `TD`, up to 9 nodes and 12 arrows, one level of subgraphs (each drawn as a titled frame, no arrows between frames; `linkStyle` arrows with a
-stroke take the accent, at most 2), no decisions or cycles, labels of 14 characters or fewer, and a route for every edge that avoids every other box. Anything else
-is drawn by Mermaid, themed with the same tokens, and finalize warns with the reason, for example "is drawn by
-Mermaid, not in the editorial style: label over 14 characters". Shorten the label or drop the subgraph and it
-is drawn in style on the next run.
+It draws three Mermaid types, and what it can draw correctly of each:
+
+- **Flowcharts** (`flowchart` or `graph`, `LR` or `TD`): one level of subgraphs drawn as titled frames, with
+  arrows between frames allowed (each subgraph gets its own band, so frames never meet); cycles, drawn as a
+  back arrow in a lane beside the nodes; `linkStyle` arrows with a stroke take the accent (at most 2).
+- **State diagrams** (`stateDiagram` or `stateDiagram-v2`, optional `direction LR`): states, `[*]` start and end
+  markers, labelled transitions and loops. Composite states, forks, choices, notes and descriptions are refused.
+- **Sequence diagrams**: up to 5 participants and 12 messages. `->>` is a call (solid), `-->>` a return (dashed,
+  filled head), `-)` and `--)` async (dashed, open head). Fragments (`alt`, `loop`, `opt`), notes, activations
+  and self-messages are refused.
+
+Common limits: up to 9 nodes and 12 arrows, flowchart and state labels of 14 characters or fewer (28 in a sequence
+diagram), and a route for every arrow that avoids every other box. Anything else is drawn by Mermaid, themed with the
+same tokens, and finalize warns with the reason, for example "is drawn by Mermaid, not in the editorial style: label
+over 14 characters". Shorten the label and it is drawn in style on the next run.
 
 When the skill is installed (`diagrams.design_skill_dir`, default `~/.claude/skills/diagram-design`), finalize also
 runs its `self_check.py` (accessible-SVG and page contract) and `verify-geometry.py` (the six connector rules) on
