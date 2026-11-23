@@ -1,6 +1,6 @@
 # pi-deep-research
 
-**Deep research skill for [pi](https://github.com/badlogic/pi-mono/tree/main/packages/coding-agent) — structured search, reflection, and analysis.**
+**Deep research skill for [pi](https://github.com/badlogic/pi-mono/tree/main/packages/coding-agent), structured search, reflection, and analysis.**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](LICENSE)
 
@@ -31,7 +31,7 @@ export BRAVE_API_KEY="BSA..."
 ```
 
 No API key needed if the [agent-reach](https://github.com/Panniantong/Agent-Reach) toolchain
-(`mcporter` / `opencli`) is installed — the built-in `agent-reach` provider serves search
+(`mcporter` / `opencli`) is installed, the built-in `agent-reach` provider serves search
 through it (Exa web search + Xiaohongshu/Twitter/Reddit social channels) without any keys.
 
 ## Usage
@@ -121,8 +121,7 @@ Resolution order: `SEARCH_PROVIDERS` env var → `config.json` → default
 `tavily,brave,agent-reach`. Each provider is tried in order until one returns
 results; empty results and errors both fall through to the next provider;
 providers with no credentials are skipped. A malformed `config.json` is a
-startup error (never a silent fallback to cloud defaults). Custom engines —
-including local ones like SearXNG or self-hosted Firecrawl — drop in as
+startup error (never a silent fallback to cloud defaults). Custom engines, including local ones like SearXNG or self-hosted Firecrawl, drop in as
 single `.ts` files (details in [Configuration](#search-provider-details)).
 
 ### Local OCR for PDFs and images
@@ -217,11 +216,11 @@ The agent presents sub-questions and search queries, then waits for your approva
 
 ### 3. Checkpoint: keep searching or proceed?
 
-After each search round, the `research_checkpoint` tool evaluates progress. Here it says 🔴 **CONTINUE** — confidence is too low and contradictions need resolving:
+After each search round, the `research_checkpoint` tool evaluates progress. Here it says 🔴 **CONTINUE**, confidence is too low and contradictions need resolving:
 
 <img src="https://raw.githubusercontent.com/czhiming-maker/pi-deep-research/main/docs/checkpoint1.png" alt="Checkpoint CONTINUE verdict" width="800">
 
-After more rounds, all criteria are met — 🟢 **PROCEED**:
+After more rounds, all criteria are met, 🟢 **PROCEED**:
 
 <img src="https://raw.githubusercontent.com/czhiming-maker/pi-deep-research/main/docs/checkpoint2.png" alt="Checkpoint PROCEED verdict" width="800">
 
@@ -247,19 +246,19 @@ pi install https://github.com/nicobailon/visual-explainer
 
 Then ask: `Turn this report into a visual HTML page`
 
-<img src="https://raw.githubusercontent.com/czhiming-maker/pi-deep-research/main/docs/html_result_1.png" alt="Visual HTML report — overview with key metrics" width="800">
+<img src="https://raw.githubusercontent.com/czhiming-maker/pi-deep-research/main/docs/html_result_1.png" alt="Visual HTML report, overview with key metrics" width="800">
 
-<img src="https://raw.githubusercontent.com/czhiming-maker/pi-deep-research/main/docs/html_result_2.png" alt="Visual HTML report — framework cards and comparison matrix" width="800">
+<img src="https://raw.githubusercontent.com/czhiming-maker/pi-deep-research/main/docs/html_result_2.png" alt="Visual HTML report, framework cards and comparison matrix" width="800">
 
 ## Why
 
 LLMs doing "research" typically search once, skim snippets, and produce a surface-level summary. This skill fixes that by:
 
-1. **Forcing deep reading** — instructs the agent to use `web_extract` on substantive sources, not just rely on search snippets
-2. **Code-enforced reflection** — a `research_checkpoint` tool that evaluates progress against hard thresholds (min rounds, min sources, confidence score) and returns CONTINUE/PROCEED verdicts the agent must obey
-3. **Multi-hop reasoning** — Entity Expansion, Temporal Progression, Conceptual Deepening, and Causal Chain patterns with concrete examples
-4. **Analytical writing** — anti-patterns ("Source A says X. Source B says Y." ❌) vs analytical style ("Evidence converges on X because..." ✅)
-5. **Human-in-the-Loop** — research plan must be approved before execution begins
+1. **Forcing deep reading**, instructs the agent to use `web_extract` on substantive sources, not just rely on search snippets
+2. **Code-enforced reflection**, a `research_checkpoint` tool that evaluates progress against hard thresholds (min rounds, min sources, confidence score) and returns CONTINUE/PROCEED verdicts the agent must obey
+3. **Multi-hop reasoning**, Entity Expansion, Temporal Progression, Conceptual Deepening, and Causal Chain patterns with concrete examples
+4. **Analytical writing**, anti-patterns ("Source A says X. Source B says Y." ❌) vs analytical style ("Evidence converges on X because..." ✅)
+5. **Human-in-the-Loop**, research plan must be approved before execution begins
 
 ## How It Works
 
@@ -270,7 +269,7 @@ Phase 1: Understand & Plan
   ↓ (user approves plan)
 Phase 2: Search & Gather (multi-hop reasoning, deep reading)
   ↓
-Phase 3: Checkpoint & Reflect (MANDATORY — code-enforced)
+Phase 3: Checkpoint & Reflect (MANDATORY, code-enforced)
   ↓ 🔴 CONTINUE? → back to Phase 2
   ↓ 🟢 PROCEED? → continue
 Phase 4: Synthesize & Report (Markdown file)
@@ -307,14 +306,14 @@ Safety valve: after max rounds, forces PROCEED and flags remaining gaps.
 Reports are saved as Markdown files: `research_[topic]_[YYYYMMDD].md`
 
 Sections include:
-- **Executive Summary** — conclusion first, then evidence
-- **Key Findings** — ranked by importance with source citations
-- **Detailed Analysis** — cross-referenced sub-questions with original analysis
-- **Comparison Table + Narrative** — data and insight together
-- **Contradictions & Debates** — vendor claims vs independent evidence
-- **Uncertainties & Gaps** — explicitly flagged low-confidence areas
-- **Recommendations** — primary, alternative, not recommended
-- **Sources Table** — every URL with date and credibility tier (⭐🔵🟡🔴)
+- **Executive Summary**, conclusion first, then evidence
+- **Key Findings**, ranked by importance with source citations
+- **Detailed Analysis**, cross-referenced sub-questions with original analysis
+- **Comparison Table + Narrative**, data and insight together
+- **Contradictions & Debates**, vendor claims vs independent evidence
+- **Uncertainties & Gaps**, explicitly flagged low-confidence areas
+- **Recommendations**, primary, alternative, not recommended
+- **Sources Table**, every URL with date and credibility tier (⭐🔵🟡🔴)
 
 ## Package Contents
 
@@ -333,7 +332,7 @@ Sections include:
 ### Search Provider Details
 
 The `agent-reach` provider fans one query out to several channels and merges the
-results — social channels are complementary evidence sources, not fallbacks. It
+results, social channels are complementary evidence sources, not fallbacks. It
 sits last in the default chain; machines without the toolchain simply see it
 skipped as "not configured". Tunables: `AGENT_REACH_MAX_CALLS` (per-channel call
 budget, default 8), `AGENT_REACH_TIMEOUT_MS` (channel timeout, default 12000),
@@ -341,13 +340,13 @@ budget, default 8), `AGENT_REACH_TIMEOUT_MS` (channel timeout, default 12000),
 protected by a breaker: two consecutive failures cool that channel down for
 five minutes.
 
-**Custom providers (hot-pluggable).** Any search engine — including local
+**Custom providers (hot-pluggable).** Any search engine, including local
 ones like [SearXNG](https://docs.searxng.org) or self-hosted
-[Firecrawl](https://firecrawl.dev) — can be added by dropping a `.ts` plugin
+[Firecrawl](https://firecrawl.dev), can be added by dropping a `.ts` plugin
 into `~/.pi/agent/pi-deep-research/providers/`, listing it in
 `SEARCH_PROVIDERS`, and running `/reload`. Ready-made examples and the plugin
 contract: [`examples/`](examples/README.md). Listing only local providers
-gives you a fully air-gapped setup — cloud APIs are never in the chain.
+gives you a fully air-gapped setup, cloud APIs are never in the chain.
 
 ### Depth Defaults
 
@@ -361,16 +360,16 @@ Override in `references/config.md`:
 
 This skill is built on insights from [SuperClaude's DeepResearch](https://github.com/SuperClaude-Org/SuperClaude_Framework) architecture and academic foundations including:
 
-- **Reflexion** (Shinn et al. 2023) — self-reflective loops with explicit evaluation
-- **Chain-of-Thought** (Wei et al. 2022) — structured reasoning decomposition
-- **ReAct** (Yao et al. 2023) — interleaved reasoning and action
-- **Multi-hop QA** (Yang et al. 2018) — cross-document reasoning
+- **Reflexion** (Shinn et al. 2023), self-reflective loops with explicit evaluation
+- **Chain-of-Thought** (Wei et al. 2022), structured reasoning decomposition
+- **ReAct** (Yao et al. 2023), interleaved reasoning and action
+- **Multi-hop QA** (Yang et al. 2018), cross-document reasoning
 
 Key design principles:
-1. **Forceful imperative wording** for reference file loading — LLMs skip polite requests
-2. **Exact keyword matching** for depth selection — prevents natural-language ambiguity from overriding explicit depth choices
-3. **Human-in-the-Loop** at plan stage — API calls are costly, confirm before executing
-4. **Code-enforced checkpoints** — LLMs self-evaluate optimistically, code doesn't
+1. **Forceful imperative wording** for reference file loading, LLMs skip polite requests
+2. **Exact keyword matching** for depth selection, prevents natural-language ambiguity from overriding explicit depth choices
+3. **Human-in-the-Loop** at plan stage, API calls are costly, confirm before executing
+4. **Code-enforced checkpoints**, LLMs self-evaluate optimistically, code doesn't
 
 ## Contributing
 

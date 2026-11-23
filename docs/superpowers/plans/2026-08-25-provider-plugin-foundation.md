@@ -2,11 +2,11 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Rebuild web search on a hot-pluggable provider-chain foundation — native support limited to Tavily and Brave, anything else is a user drop-in plugin, zero-config behavior identical to v0.1.6.
+**Goal:** Rebuild web search on a hot-pluggable provider-chain foundation, native support limited to Tavily and Brave, anything else is a user drop-in plugin, zero-config behavior identical to v0.1.6.
 
-**Architecture:** `extension.ts` becomes a thin async entry (pi awaits async factories — verified against pi's extensions doc) that builds a provider registry (native + plugins loaded via our own jiti instance), validates `SEARCH_PROVIDERS`, and registers the three tools around a pure chain engine. The chain engine (`src/chain.ts`) is a pure function over an injectable provider list — no I/O knowledge, fully unit-testable offline.
+**Architecture:** `extension.ts` becomes a thin async entry (pi awaits async factories, verified against pi's extensions doc) that builds a provider registry (native + plugins loaded via our own jiti instance), validates `SEARCH_PROVIDERS`, and registers the three tools around a pure chain engine. The chain engine (`src/chain.ts`) is a pure function over an injectable provider list, no I/O knowledge, fully unit-testable offline.
 
-**Tech Stack:** TypeScript (erasable-syntax only — Node native type stripping for tests), `node:test` (zero new dev deps), `jiti` ^2 (only new runtime dep), typebox (provided by pi at runtime).
+**Tech Stack:** TypeScript (erasable-syntax only, Node native type stripping for tests), `node:test` (zero new dev deps), `jiti` ^2 (only new runtime dep), typebox (provided by pi at runtime).
 
 **Spec:** `docs/superpowers/specs/2026-08-25-provider-plugin-foundation-design.md` (Approved). Example plugins port from PR #4 (diff saved at `/tmp/pr4.diff` during planning; re-fetch with `gh pr diff 4 --repo czhiming-maker/pi-deep-research` if needed).
 
@@ -21,12 +21,12 @@
 - Successful search output byte-identical to v0.1.6 happy path. Zero-result/error output appends `Attempts: a → error (msg), b → empty` summary.
 - Domain filter: client-side, uniform, subdomain-aware (`example.com` matches `www.example.com`, not `notexample.com`), applied after provider return, before `slice(0, maxResults)`, no backfill.
 - Extract chain: ordered walk; first configured provider that has `extract()` wins; blank `content` counts as failure → continue; none → basic HTTP fetch fallback (provider label `fetch (basic)`); output gains `**Provider:** X` line.
-- Batch: parallel per query; per-query failures surfaced (`### "q" (0 results) — ⚠️ all providers failed` + italic message); header lists providers actually used.
+- Batch: parallel per query; per-query failures surfaced (`### "q" (0 results), ⚠ all providers failed` + italic message); header lists providers actually used.
 - Erasable TS only (no enums/namespaces/parameter-properties). Relative imports MUST use explicit `.ts` extensions (Node type-stripping requirement; jiti handles it too).
-- Env reads happen inside `isConfigured()`/`search()` (call time), never at module load — allows test env manipulation.
+- Env reads happen inside `isConfigured()`/`search()` (call time), never at module load, allows test env manipulation.
 - No changes to the `pi` field of package.json; entry stays `./extension.ts`.
 - Repo convention: commit directly to `main`, message style `type: description` (e.g. `feat:`, `test:`, `docs:`). Never push without explicit user request.
-- `research_checkpoint` tool is ported byte-identical from current `extension.ts:309-499` — do not "improve" it.
+- `research_checkpoint` tool is ported byte-identical from current `extension.ts:309-499`, do not "improve" it.
 
 ---
 
@@ -81,7 +81,7 @@ package.json edits (keep all other fields; final state of the changed keys):
 - [x] **Step 2: Write `src/types.ts`** (spec contract verbatim + Attempt)
 
 ```ts
-/** Provider contract — the v1 public API for native providers and drop-in plugins. */
+/** Provider contract, the v1 public API for native providers and drop-in plugins. */
 
 export interface SearchResult {
 	title: string;
@@ -110,13 +110,13 @@ export interface SearchRequest {
 
 export interface SearchProvider {
 	name: string; // unique, lowercase [a-z0-9-]
-	tier: "local" | "cloud"; // metadata for output/observability only — never drives logic
+	tier: "local" | "cloud"; // metadata for output/observability only, never drives logic
 	isConfigured(): boolean; // false → skipped, recorded in attempts
 	search(req: SearchRequest): Promise<SearchResult[]>; // throw = failure; empty array = success
 	extract?(url: string, signal?: AbortSignal): Promise<ExtractResult>; // optional capability
 }
 
-/** One step of a chain walk — attached to every result and failure. */
+/** One step of a chain walk, attached to every result and failure. */
 export interface Attempt {
 	provider: string;
 	status: "skipped" | "empty" | "error";
@@ -218,7 +218,7 @@ describe("pickMeta", () => {
 - [x] **Step 4: Run test to verify it fails**
 
 Run: `npm test`
-Expected: FAIL — cannot find module `../src/shared.ts`.
+Expected: FAIL, cannot find module `../src/shared.ts`.
 
 - [x] **Step 5: Write `src/shared.ts`** (ports of PR #4 helpers + the basic-fetch extractor)
 
@@ -321,7 +321,7 @@ export async function extractWithFetch(url: string, fetchImpl: typeof fetch = gl
 - [x] **Step 6: Run test to verify it passes**
 
 Run: `npm test`
-Expected: PASS — all shared tests green (loader/chain/etc. don't exist yet; only shared.test.ts runs).
+Expected: PASS, all shared tests green (loader/chain/etc. don't exist yet; only shared.test.ts runs).
 
 - [x] **Step 7: Commit**
 
@@ -342,8 +342,8 @@ git commit -m "feat: provider contract types + shared helpers (domain filter, st
 - Consumes: `SearchProvider` from `src/types.ts`.
 - Produces:
   - `DEFAULT_PROVIDERS: string[]` (value `["tavily", "brave"]`)
-  - `parseProviderList(raw: string | undefined): string[]` — normalized ordered list; `undefined`/blank → default; all-entries-empty after normalization → default (defensive)
-  - `resolveChain(registry: SearchProvider[], order: string[]): SearchProvider[]` — throws `Error` naming the unknown provider and listing all available names (sorted, comma-separated)
+  - `parseProviderList(raw: string | undefined): string[]`, normalized ordered list; `undefined`/blank → default; all-entries-empty after normalization → default (defensive)
+  - `resolveChain(registry: SearchProvider[], order: string[]): SearchProvider[]`, throws `Error` naming the unknown provider and listing all available names (sorted, comma-separated)
 
 - [x] **Step 1: Write the failing test `test/config.test.ts`**
 
@@ -405,7 +405,7 @@ describe("resolveChain", () => {
 - [x] **Step 2: Run test to verify it fails**
 
 Run: `npm test`
-Expected: FAIL — cannot find module `../src/config.ts`.
+Expected: FAIL, cannot find module `../src/config.ts`.
 
 - [x] **Step 3: Write `src/config.ts`**
 
@@ -417,8 +417,7 @@ export const DEFAULT_PROVIDERS = ["tavily", "brave"];
 /**
  * Parse SEARCH_PROVIDERS: comma-separated, ordered provider names.
  * Normalization: trim, lowercase, drop empty entries, dedupe keeping the
- * first occurrence. Blank/all-empty input falls back to the default list —
- * the list defines both the SET and the ORDER of the chain (air-gap users
+ * first occurrence. Blank/all-empty input falls back to the default list, * the list defines both the SET and the ORDER of the chain (air-gap users
  * simply list only local providers; cloud never enters the chain).
  */
 export function parseProviderList(raw: string | undefined): string[] {
@@ -433,7 +432,7 @@ export function parseProviderList(raw: string | undefined): string[] {
 
 /**
  * Map an ordered name list onto registry providers.
- * Fail fast: an unknown name is a configuration error — the message lists
+ * Fail fast: an unknown name is a configuration error, the message lists
  * the unknown name and every available provider so the user can self-correct.
  */
 export function resolveChain(registry: SearchProvider[], order: string[]): SearchProvider[] {
@@ -482,9 +481,9 @@ git commit -m "feat: SEARCH_PROVIDERS parsing + ordered chain resolution with fa
 - Produces:
   - `DEFAULT_TIMEOUT_MS = 30_000`
   - `class ChainError extends Error { attempts: Attempt[] }`
-  - `formatAttempts(attempts: Attempt[]): string` — `"tavily → error (401), brave → empty, x → skipped (not configured)"`
+  - `formatAttempts(attempts: Attempt[]): string`, `"tavily → error (401), brave → empty, x → skipped (not configured)"`
   - `NO_SEARCH_API_MESSAGE: string` (friendly no-config error incl. `SEARCH_PROVIDERS` pointer)
-  - `chainSearch(chain: SearchProvider[], query: string, opts: { maxResults: number; searchDepth?: "basic"|"advanced"; includeDomains?: string[]; excludeDomains?: string[]; timeoutMs?: number }): Promise<{provider: string; results: SearchResult[]; attempts: Attempt[]}>` — throws `ChainError`
+  - `chainSearch(chain: SearchProvider[], query: string, opts: { maxResults: number; searchDepth?: "basic"|"advanced"; includeDomains?: string[]; excludeDomains?: string[]; timeoutMs?: number }): Promise<{provider: string; results: SearchResult[]; attempts: Attempt[]}>`, throws `ChainError`
   - `chainExtract(chain: SearchProvider[], url: string, opts?: { timeoutMs?: number; fetchImpl?: typeof fetch }): Promise<ExtractResult>`
   - `chainBatchSearch(chain: SearchProvider[], queries: string[], opts: same as chainSearch): Promise<{results: Record<string, SearchResult[]>; providers: string[]; failures: Record<string, string>}>`
 
@@ -663,7 +662,7 @@ describe("chainBatchSearch", () => {
 - [x] **Step 2: Run test to verify it fails**
 
 Run: `npm test`
-Expected: FAIL — cannot find module `../src/chain.ts`.
+Expected: FAIL, cannot find module `../src/chain.ts`.
 
 - [x] **Step 3: Write `src/chain.ts`**
 
@@ -725,7 +724,7 @@ export interface ChainSearchResult {
 }
 
 /**
- * Uniform chain semantics — the same rule for every provider, no tier asymmetry:
+ * Uniform chain semantics, the same rule for every provider, no tier asymmetry:
  *   isConfigured() false → skipped · ≥1 result after domain filtering → win ·
  *   empty → continue · throw → continue · exhausted → aggregated ChainError.
  * All-skipped (nothing configured) yields the friendly no-config message.
@@ -847,7 +846,7 @@ git commit -m "feat: pure provider chain engine (uniform semantics, attempts log
 
 ---
 
-### Task 4: Native providers — Tavily + Brave (TDD)
+### Task 4: Native providers, Tavily + Brave (TDD)
 
 **Files:**
 - Create: `src/native/tavily.ts`
@@ -859,7 +858,7 @@ git commit -m "feat: pure provider chain engine (uniform semantics, attempts log
 - Produces:
   - `createTavilyProvider(fetchImpl?: typeof fetch): SearchProvider` (name `tavily`, tier `cloud`)
   - `createBraveProvider(fetchImpl?: typeof fetch): SearchProvider` (name `brave`, tier `cloud`)
-  - Both read their env key at call time (`isConfigured()` and inside `search()`), forward `req.signal` to fetch, and map responses exactly as v0.1.6 did. Deliberate delta (per spec): include/exclude domains are NOT sent to the Tavily API — filtering is client-side and uniform now.
+  - Both read their env key at call time (`isConfigured()` and inside `search()`), forward `req.signal` to fetch, and map responses exactly as v0.1.6 did. Deliberate delta (per spec): include/exclude domains are NOT sent to the Tavily API, filtering is client-side and uniform now.
 
 - [x] **Step 1: Write the failing test `test/native.test.ts`**
 
@@ -961,12 +960,12 @@ describe("brave", () => {
 });
 ```
 
-Note the test imports from `../src/native/index.ts` — a barrel file keeps import paths stable.
+Note the test imports from `../src/native/index.ts`, a barrel file keeps import paths stable.
 
 - [x] **Step 2: Run test to verify it fails**
 
 Run: `npm test`
-Expected: FAIL — cannot find module `../src/native/index.ts`.
+Expected: FAIL, cannot find module `../src/native/index.ts`.
 
 - [x] **Step 3: Write `src/native/tavily.ts`, `src/native/brave.ts`, `src/native/index.ts`**
 
@@ -979,7 +978,7 @@ interface TavilyResponse {
 	results: Array<{ title: string; url: string; content: string; score: number; published_date?: string }>;
 }
 
-/** Native Tavily provider — same endpoint, params, and response mapping as v0.1.6. */
+/** Native Tavily provider, same endpoint, params, and response mapping as v0.1.6. */
 export function createTavilyProvider(fetchImpl: typeof fetch = globalThis.fetch): SearchProvider {
 	return {
 		name: "tavily",
@@ -1030,7 +1029,7 @@ interface BraveResponse {
 	web?: { results: Array<{ title: string; url: string; description: string; age?: string }> };
 }
 
-/** Native Brave provider — same endpoint, params, and response mapping as v0.1.6. */
+/** Native Brave provider, same endpoint, params, and response mapping as v0.1.6. */
 export function createBraveProvider(fetchImpl: typeof fetch = globalThis.fetch): SearchProvider {
 	return {
 		name: "brave",
@@ -1093,15 +1092,15 @@ git commit -m "feat: native tavily + brave providers behind the SearchProvider c
 **Interfaces:**
 - Consumes: `SearchProvider` from `src/types.ts`; `Jiti` type + `createJiti` from `jiti`.
 - Produces:
-  - `providersDir(home?: string): string` — `<home>/.pi/agent/deep-research/providers` (defaults to `os.homedir()`)
-  - `loadPlugins(dir: string, reserved: string[], jiti: Jiti): Promise<{providers: SearchProvider[]; warnings: string[]}>` — scans `*.ts` (excluding `*.d.ts`, sorted for determinism); missing dir (`ENOENT`) → empty result, never throws; per-file rules:
+  - `providersDir(home?: string): string`, `<home>/.pi/agent/deep-research/providers` (defaults to `os.homedir()`)
+  - `loadPlugins(dir: string, reserved: string[], jiti: Jiti): Promise<{providers: SearchProvider[]; warnings: string[]}>`, scans `*.ts` (excluding `*.d.ts`, sorted for determinism); missing dir (`ENOENT`) → empty result, never throws; per-file rules:
     - import throws → skip + warning
     - default export not `{name: string, search: function}` → skip + warning naming file + reason
     - name not matching `/^[a-z0-9-]+$/` → skip + warning
     - name in `reserved` (native) → skip + warning
     - duplicate plugin name → second skipped + warning naming BOTH files
 
-- [x] **Step 1: Write the failing test `test/loader.test.ts`** (fixtures are real `.ts` files written to a temp dir, loaded with a real jiti instance — this is the same mechanism the extension uses)
+- [x] **Step 1: Write the failing test `test/loader.test.ts`** (fixtures are real `.ts` files written to a temp dir, loaded with a real jiti instance, this is the same mechanism the extension uses)
 
 ```ts
 import assert from "node:assert/strict";
@@ -1214,7 +1213,7 @@ describe("providersDir", () => {
 - [x] **Step 2: Run test to verify it fails**
 
 Run: `npm test`
-Expected: FAIL — cannot find module `../src/loader.ts`.
+Expected: FAIL, cannot find module `../src/loader.ts`.
 
 - [x] **Step 3: Write `src/loader.ts`**
 
@@ -1227,7 +1226,7 @@ import type { SearchProvider } from "./types.ts";
 
 const NAME_RE = /^[a-z0-9-]+$/;
 
-/** Global plugin directory (v1: global only — project-level dirs would bypass pi's project trust gate). */
+/** Global plugin directory (v1: global only, project-level dirs would bypass pi's project trust gate). */
 export function providersDir(home: string = homedir()): string {
 	return join(home, ".pi", "agent", "deep-research", "providers");
 }
@@ -1241,7 +1240,7 @@ export interface LoadResult {
  * Scan a directory for provider plugins (.ts files whose default export
  * conforms to SearchProvider) and load them via jiti. A missing directory is
  * normal (no plugins). Every failure mode skips the offending file with a
- * warning — one bad plugin never blocks startup.
+ * warning, one bad plugin never blocks startup.
  */
 export async function loadPlugins(dir: string, reserved: string[], jiti: Jiti): Promise<LoadResult> {
 	const warnings: string[] = [];
@@ -1329,22 +1328,22 @@ git commit -m "feat: jiti-based plugin loader with per-file validation and colli
 ### Task 6: Rewrite `extension.ts` as the thin entry
 
 **Files:**
-- Modify: `extension.ts` (full rewrite; `research_checkpoint` ported byte-identical from the current file, lines 309–499)
+- Modify: `extension.ts` (full rewrite; `research_checkpoint` ported byte-identical from the current file, lines 309-499)
 
 **Interfaces:**
-- Consumes: everything produced by Tasks 1–5 (`chainSearch`, `chainBatchSearch`, `chainExtract`, `parseProviderList`, `resolveChain`, `loadPlugins`, `providersDir`, `createTavilyProvider`, `createBraveProvider`, `createJiti`).
-- Produces: the extension entry itself — async default factory (pi awaits it; verified against pi's extensions doc), building a fresh registry per load so `/reload` re-scans the plugin dir (hot-plug).
+- Consumes: everything produced by Tasks 1-5 (`chainSearch`, `chainBatchSearch`, `chainExtract`, `parseProviderList`, `resolveChain`, `loadPlugins`, `providersDir`, `createTavilyProvider`, `createBraveProvider`, `createJiti`).
+- Produces: the extension entry itself, async default factory (pi awaits it; verified against pi's extensions doc), building a fresh registry per load so `/reload` re-scans the plugin dir (hot-plug).
 
-No unit test in this task — the entry depends on pi runtime types; its logic is entirely delegated to the tested chain/config/loader modules. Verification is review + green suite + the Task 8 smoke.
+No unit test in this task, the entry depends on pi runtime types; its logic is entirely delegated to the tested chain/config/loader modules. Verification is review + green suite + the Task 8 smoke.
 
 - [x] **Step 1: Rewrite `extension.ts`**
 
 ```ts
 /**
- * Deep Research Extension — web_search + web_extract + research_checkpoint tools
+ * Deep Research Extension, web_search + web_extract + research_checkpoint tools
  *
  * Search and extraction run a provider chain configured via SEARCH_PROVIDERS
- * (ordered, comma-separated; default: tavily,brave — identical to v0.1.6).
+ * (ordered, comma-separated; default: tavily,brave, identical to v0.1.6).
  * Additional providers are hot-pluggable: drop a .ts file exporting a
  * SearchProvider into ~/.pi/agent/deep-research/providers/ and /reload.
  * See README → Custom Search Providers.
@@ -1425,7 +1424,7 @@ export default async function (pi: ExtensionAPI) {
 
 				for (const [query, hits] of Object.entries(results)) {
 					const failed = failures[query];
-					text += `### "${query}" (${hits.length} results)${failed ? " — ⚠️ all providers failed" : ""}\n\n`;
+					text += `### "${query}" (${hits.length} results)${failed ? ", ⚠ all providers failed" : ""}\n\n`;
 					if (failed) text += `_${failed}_\n\n`;
 					for (let i = 0; i < hits.length; i++) {
 						const h = hits[i];
@@ -1498,7 +1497,7 @@ export default async function (pi: ExtensionAPI) {
 	// ── Tool: research_checkpoint ──
 	// Hard gate: LLM must call this after each search round.
 	// Code decides whether to continue searching or allow synthesis.
-	// (Ported unchanged from v0.1.6 — do not modify.)
+	// (Ported unchanged from v0.1.6, do not modify.)
 
 	const DEPTH_THRESHOLDS: Record<
 		string,
@@ -1523,7 +1522,7 @@ export default async function (pi: ExtensionAPI) {
 			"MANDATORY after each search round during deep research.",
 			"Submit current research state for evaluation.",
 			"The tool will analyze your progress and return a VERDICT: CONTINUE (must search more) or PROCEED (may synthesize report).",
-			"You MUST obey the verdict — if it says CONTINUE, you must do another search round before calling this again.",
+			"You MUST obey the verdict, if it says CONTINUE, you must do another search round before calling this again.",
 			"Do NOT skip this tool or write the report without a PROCEED verdict.",
 		].join(" "),
 		parameters: Type.Object({
@@ -1608,7 +1607,7 @@ export default async function (pi: ExtensionAPI) {
 			if (hasContradictions && params.round < thresholds.maxSearchRounds) {
 				verdict = "CONTINUE";
 				issues.push(
-					`⚠️ Unresolved contradictions (${params.contradictions!.length}) — search for authoritative sources to verify`
+					`⚠ Unresolved contradictions (${params.contradictions!.length}), search for authoritative sources to verify`
 				);
 			}
 
@@ -1617,7 +1616,7 @@ export default async function (pi: ExtensionAPI) {
 				verdict = "PROCEED";
 				if (issues.length > 0) {
 					issues.push(
-						`⚠️ Max search rounds reached (${thresholds.maxSearchRounds}). Proceeding to report. Remaining issues will be noted in "Uncertainties & Gaps".`
+						`⚠ Max search rounds reached (${thresholds.maxSearchRounds}). Proceeding to report. Remaining issues will be noted in "Uncertainties & Gaps".`
 					);
 				}
 			}
@@ -1625,7 +1624,7 @@ export default async function (pi: ExtensionAPI) {
 			// ── Build response ──
 			const statusBar = `${"█".repeat(Math.round(avgConfidence / 5))}${"░".repeat(20 - Math.round(avgConfidence / 5))}`;
 
-			let text = `## Research Checkpoint — Round ${params.round}\n\n`;
+			let text = `## Research Checkpoint, Round ${params.round}\n\n`;
 			text += `**Depth:** ${params.depth} | **Verdict: ${verdict === "CONTINUE" ? "🔴 CONTINUE SEARCHING" : "🟢 PROCEED TO REPORT"}**\n\n`;
 			text += `### Progress\n`;
 			text += `- Search rounds: ${params.round} / ${thresholds.minSearchRounds}-${thresholds.maxSearchRounds}\n`;
@@ -1638,7 +1637,7 @@ export default async function (pi: ExtensionAPI) {
 			for (const q of params.sub_questions) {
 				const icon =
 					q.confidence >= thresholds.confidenceThreshold ? "✅" : q.confidence >= 40 ? "🟡" : "🔴";
-				text += `${icon} [${q.confidence}%] ${q.question} — ${q.source_count} sources (Tier ${q.best_source_tier})\n`;
+				text += `${icon} [${q.confidence}%] ${q.question}, ${q.source_count} sources (Tier ${q.best_source_tier})\n`;
 			}
 
 			if (issues.length > 0) {
@@ -1668,15 +1667,15 @@ export default async function (pi: ExtensionAPI) {
 
 				// Specific guidance
 				if (lowConfidenceQuestions.length > 0) {
-					text += `\n**Priority — Low confidence questions to focus on:**\n`;
+					text += `\n**Priority, Low confidence questions to focus on:**\n`;
 					for (const q of lowConfidenceQuestions) {
-						text += `- "${q.question}" — try different search queries, different angles\n`;
+						text += `- "${q.question}", try different search queries, different angles\n`;
 					}
 				}
 				if (medConfidenceQuestions.length > 0) {
-					text += `\n**Secondary — Medium confidence questions to strengthen:**\n`;
+					text += `\n**Secondary, Medium confidence questions to strengthen:**\n`;
 					for (const q of medConfidenceQuestions) {
-						text += `- "${q.question}" (${q.confidence}%) — find corroborating sources\n`;
+						text += `- "${q.question}" (${q.confidence}%), find corroborating sources\n`;
 					}
 				}
 				if (hasContradictions) {
@@ -1684,12 +1683,12 @@ export default async function (pi: ExtensionAPI) {
 				}
 			} else {
 				text += `\n### ✅ Ready to Synthesize\n`;
-				text += `All criteria met. Proceed to Phase 4 — write the research report.\n`;
+				text += `All criteria met. Proceed to Phase 4, write the research report.\n`;
 				if (params.gaps && params.gaps.length > 0) {
 					text += `Include the ${params.gaps.length} remaining gap(s) in the "Uncertainties & Gaps" section of the report.\n`;
 				}
 				if (hasContradictions) {
-					text += `Include the ${params.contradictions!.length} contradiction(s) in the report — present both sides.\n`;
+					text += `Include the ${params.contradictions!.length} contradiction(s) in the report, present both sides.\n`;
 				}
 			}
 
@@ -1705,9 +1704,9 @@ Run: `npm test`
 Expected: PASS (entry isn't unit-tested; suite guards the modules it consumes).
 
 Review checklist (diff against the pre-rewrite `extension.ts`):
-- Header comment no longer claims a "bash curl fallback" (v0.1.6 header lied — spec requires dropping that claim).
+- Header comment no longer claims a "bash curl fallback" (v0.1.6 header lied, spec requires dropping that claim).
 - Tool schemas byte-identical to v0.1.6 (only the two description strings changed, per spec).
-- `research_checkpoint` body identical to v0.1.6 lines 309–499.
+- `research_checkpoint` body identical to v0.1.6 lines 309-499.
 - Happy-path single-search output format identical (`Searched "q" via <provider>, found N results:` …).
 
 - [x] **Step 3: Commit**
@@ -1730,7 +1729,7 @@ git commit -m "feat: rewrite extension.ts as thin entry over the provider chain 
 - Modify: `package.json` (`version: 0.3.0`)
 
 **Interfaces:**
-- Consumes: the plugin file format from Tasks 1/5 (default export conforming to `SearchProvider`, standalone — examples may NOT import from the package since they are copied to `~/.pi/agent/deep-research/providers/` where package imports don't resolve).
+- Consumes: the plugin file format from Tasks 1/5 (default export conforming to `SearchProvider`, standalone, examples may NOT import from the package since they are copied to `~/.pi/agent/deep-research/providers/` where package imports don't resolve).
 - Produces: copy-paste starting points (ported from PR #4 by @fank, credit in file headers), docs, 0.3.0.
 
 - [x] **Step 1: Write `examples/providers/searxng.ts`**
@@ -1861,7 +1860,7 @@ export default {
 				title?: string;
 				url?: string;
 				markdown?: string;
-				// Firecrawl passes most raw meta keys straight through — read
+				// Firecrawl passes most raw meta keys straight through, read
 				// author/date via candidate keys, not fixed fields.
 				metadata?: { title?: string; sourceURL?: string; [key: string]: unknown };
 			};
@@ -1874,7 +1873,7 @@ export default {
 
 		const rawContent = doc.markdown ?? "";
 		// A 200 with empty markdown (JS-heavy or blocked page) is not a usable
-		// extract — throw so the chain falls back to another extractor.
+		// extract, throw so the chain falls back to another extractor.
 		if (!rawContent.trim()) throw new Error("Firecrawl returned no content (page may require JS or be blocked)");
 
 		const title = doc.metadata?.title ?? doc.title ?? "";
@@ -1888,7 +1887,7 @@ export default {
 
 function firecrawlHeaders(): Record<string, string> {
 	const headers: Record<string, string> = { "Content-Type": "application/json" };
-	const basicAuth = process.env.FIRECRAWL_BASIC_AUTH; // "user:password" — never logged
+	const basicAuth = process.env.FIRECRAWL_BASIC_AUTH; // "user:password", never logged
 	if (basicAuth) headers["Authorization"] = "Basic " + Buffer.from(basicAuth).toString("base64");
 	return headers;
 }
@@ -1924,7 +1923,7 @@ function pickMeta(meta: Record<string, unknown> | undefined, keys: string[]): st
 # Example Provider Plugins
 
 Copy-paste starting points for custom search providers. These are NOT
-installed or loaded by default — copying a file into the plugin directory is
+installed or loaded by default, copying a file into the plugin directory is
 an explicit opt-in.
 
 ## Install a plugin
@@ -1942,13 +1941,13 @@ an explicit opt-in.
 3. List it in the chain:
 
    ```bash
-   export SEARCH_PROVIDERS=searxng              # local only — cloud never contacted
+   export SEARCH_PROVIDERS=searxng              # local only, cloud never contacted
    # or, local first with cloud fallback:
    export SEARCH_PROVIDERS=firecrawl,searxng,tavily,brave
    ```
 
 4. Run `/reload` in pi (or restart). The plugin directory is re-scanned on
-   every extension load — that is the hot-plug mechanism. There is no
+   every extension load, that is the hot-plug mechanism. There is no
    mid-session file watching.
 
 Remove a plugin from the chain by removing it from `SEARCH_PROVIDERS` (the
@@ -1962,10 +1961,10 @@ SearchProvider contract:
 ```ts
 export default {
 	name: "my-engine",            // required: lowercase [a-z0-9-], unique; "tavily"/"brave" are reserved
-	tier: "local",                // "local" | "cloud" — display metadata only
+	tier: "local",                // "local" | "cloud", display metadata only
 	isConfigured: () => Boolean(process.env.MY_ENGINE_URL),  // false → skipped, recorded in attempts
 	async search(req) {           // required: return [] on success-with-zero-hits; throw on failure
-		// req: { query, maxResults, searchDepth?, signal? } — honor signal if you can
+		// req: { query, maxResults, searchDepth?, signal? }, honor signal if you can
 		return [{ title, url, snippet, score?, publishedDate? }];
 	},
 	// optional: extraction capability for web_extract
@@ -1981,16 +1980,16 @@ provider; all exhausted → aggregated error listing every attempt.
 
 ## Security notes
 
-- Plugin code runs with your full user privileges — same trust level as
+- Plugin code runs with your full user privileges, same trust level as
   `~/.pi/agent/extensions/`. Only install plugins you have read and trust.
 - The plugin directory is global (`~/.pi/agent/deep-research/providers/`).
-  Project-level directories are deliberately not loaded — they would bypass
+  Project-level directories are deliberately not loaded, they would bypass
   pi's project trust gate.
 ```
 
 - [x] **Step 4: Update `README.md`**
 
-Replace the "### Search Providers" subsection (lines ~190–197) with:
+Replace the "### Search Providers" subsection (lines ~190-197) with:
 
 ```md
 ### Search Providers
@@ -2012,13 +2011,13 @@ export SEARCH_PROVIDERS=tavily,brave        # default
 export SEARCH_PROVIDERS=firecrawl,tavily   # custom plugin first
 ```
 
-**Custom providers (hot-pluggable).** Any search engine — including local
+**Custom providers (hot-pluggable).** Any search engine, including local
 ones like [SearXNG](https://docs.searxng.org) or self-hosted
-[Firecrawl](https://firecrawl.dev) — can be added by dropping a `.ts` plugin
+[Firecrawl](https://firecrawl.dev), can be added by dropping a `.ts` plugin
 into `~/.pi/agent/deep-research/providers/`, listing it in
 `SEARCH_PROVIDERS`, and running `/reload`. Ready-made examples and the plugin
 contract: [`examples/`](examples/README.md). Listing only local providers
-gives you a fully air-gapped setup — cloud APIs are never in the chain.
+gives you a fully air-gapped setup, cloud APIs are never in the chain.
 
 If no provider is configured at all, `web_search` returns an error explaining
 what to set.
@@ -2037,9 +2036,9 @@ And in the "Package Contents" table, after the `extension.ts` row, add:
 ## [0.3.0] - 2026-08-25
 
 ### Added
-- Hot-pluggable search providers: drop a `.ts` plugin into `~/.pi/agent/deep-research/providers/`, list it in `SEARCH_PROVIDERS`, `/reload` — no pi extension API knowledge required.
+- Hot-pluggable search providers: drop a `.ts` plugin into `~/.pi/agent/deep-research/providers/`, list it in `SEARCH_PROVIDERS`, `/reload`, no pi extension API knowledge required.
 - `SEARCH_PROVIDERS` env var: ordered provider chain defining both set and order (default `tavily,brave`; blank = default). Listing only local providers yields a fully air-gapped setup.
-- Example plugins (not active by default): `examples/providers/searxng.ts`, `examples/providers/firecrawl.ts` — ported from #4 by @fank.
+- Example plugins (not active by default): `examples/providers/searxng.ts`, `examples/providers/firecrawl.ts`, ported from #4 by @fank.
 - Offline unit test suite (`npm test`, node:test, zero new dev dependencies).
 
 ### Changed
@@ -2052,7 +2051,7 @@ And in the "Package Contents" table, after the `extension.ts` row, add:
 - `include_domains`/`exclude_domains` are applied client-side across all providers, with subdomain-aware matching.
 
 ### Internal
-- `extension.ts` split into `src/` (config, chain engine, plugin loader, native providers). The chain engine is a pure function over injectable providers — the full empty/error/ordering matrix is unit-tested offline.
+- `extension.ts` split into `src/` (config, chain engine, plugin loader, native providers). The chain engine is a pure function over injectable providers, the full empty/error/ordering matrix is unit-tested offline.
 ```
 
 - [x] **Step 6: Bump version + verify**
@@ -2124,12 +2123,12 @@ catch (e) { console.log('validation error:', e.message.split('\n')[0]); }
 
 Expected output: `warnings: []`, `winning provider: stub | results: 1`, and a validation error naming `typo` + available providers (`brave, stub, tavily`). Cleanup: `rm -rf "$tmp"`.
 
-- [x] **Step 4: pi-runtime smoke (best effort — depends on pi + API key availability)**
+- [x] **Step 4: pi-runtime smoke (best effort, depends on pi + API key availability)**
 
 Check `command -v pi` and `echo ${TAVILY_API_KEY:+set}`:
 - If pi and a key are available: run a minimal non-interactive probe, e.g.
   `pi -p 'call web_search with query "pi coding agent github" max_results 3'` (or the session equivalent that exercises the tool), and verify output format matches v0.1.6: `Searched "…" via tavily, found N results:`.
-- If NOT available: record "pi-runtime smoke not executed (no pi / no key in this environment)" in the final report and leave criteria 3–4 of the spec's Success Criteria as pending user verification. Do NOT claim them as verified.
+- If NOT available: record "pi-runtime smoke not executed (no pi / no key in this environment)" in the final report and leave criteria 3-4 of the spec's Success Criteria as pending user verification. Do NOT claim them as verified.
 
 - [x] **Step 5: Spec coverage audit + final commit**
 
@@ -2143,7 +2142,6 @@ git add -A && git commit -m "test: final verification for provider plugin founda
 
 ## Self-Review (done at planning time)
 
-- **Spec coverage:** Goals 1–6 → Tasks 1–7 (compat: Task 4/6; hot-plug: Task 5/6; chain semantics: Task 3; air-gap: Task 2 `SEARCH_PROVIDERS`; testable core: Tasks 1–5; small core: Task 6 thin entry). Non-Goals honored (no project dir, no event bus, no npm plugin distribution, no per-provider timeouts, examples not active). Packaging → Task 1+7. Success criteria → Task 8. PR #4 closure (comment on the PR) is a maintainer action **outside this repo's code** — flagged in the final report, not a plan task.
-- **Placeholders:** none — every step carries complete code/commands/expected output.
+- **Spec coverage:** Goals 1-6 → Tasks 1-7 (compat: Task 4/6; hot-plug: Task 5/6; chain semantics: Task 3; air-gap: Task 2 `SEARCH_PROVIDERS`; testable core: Tasks 1-5; small core: Task 6 thin entry). Non-Goals honored (no project dir, no event bus, no npm plugin distribution, no per-provider timeouts, examples not active). Packaging → Task 1+7. Success criteria → Task 8. PR #4 closure (comment on the PR) is a maintainer action **outside this repo's code**, flagged in the final report, not a plan task.
+- **Placeholders:** none, every step carries complete code/commands/expected output.
 - **Type consistency:** `SearchRequest{query,maxResults,searchDepth?,signal?}` used identically in chain/native/examples; `extract?(url, signal?)` consistent across types/chain/examples; `chainSearch`/`chainBatchSearch`/`chainExtract` signatures match between Task 3 (definition) and Task 6 (use).
-```

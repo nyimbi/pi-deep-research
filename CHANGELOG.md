@@ -77,12 +77,12 @@ description: "Changelog for pi-deep-research skill"
 ## [0.4.1] - 2026-09-10
 
 ### Fixed
-- Xiaohongshu channel passes `--trace=retain-on-failure` to opencli. opencli ≥1.8.6 (extension 1.0.21+) detaches `chrome.debugger` right before `chrome.tabs.update` unless a network capture is active, and Chrome rejects that navigation on Xiaohongshu — every bare search failed with `Navigation rejected` (deterministic on 1.8.6 and 1.8.7). Keeping the capture alive skips the detach: searches succeed again and stop tripping the 15s navigation-idle timeout elsewhere. The flag leaves no artifact on success.
+- Xiaohongshu channel passes `--trace=retain-on-failure` to opencli. opencli ≥1.8.6 (extension 1.0.21+) detaches `chrome.debugger` right before `chrome.tabs.update` unless a network capture is active, and Chrome rejects that navigation on Xiaohongshu, every bare search failed with `Navigation rejected` (deterministic on 1.8.6 and 1.8.7). Keeping the capture alive skips the detach: searches succeed again and stop tripping the 15s navigation-idle timeout elsewhere. The flag leaves no artifact on success.
 
 ## [0.4.0] - 2026-09-09
 
 ### Added
-- Built-in support for [agent-reach](https://github.com/Panniantong/Agent-Reach) — the popular open-source toolchain that gives agents eyes on the entire internet. Deep research now reaches far beyond plain web search: Exa web search plus Xiaohongshu / Twitter / Reddit community channels, fanned out per query and merged automatically.
+- Built-in support for [agent-reach](https://github.com/Panniantong/Agent-Reach), the popular open-source toolchain that gives agents eyes on the entire internet. Deep research now reaches far beyond plain web search: Exa web search plus Xiaohongshu / Twitter / Reddit community channels, fanned out per query and merged automatically.
 - Sits last in the default chain (`tavily,brave,agent-reach`); machines without the toolchain see it skipped cleanly. Login-backed channels ship with throttling guardrails (per-channel budget, failure breaker, result cache).
 
 ## [0.3.1] - 2026-08-25
@@ -92,7 +92,7 @@ description: "Changelog for pi-deep-research skill"
 
 ## [0.3.0] - 2026-08-25
 
-Web search is rebuilt as a **hot-pluggable provider chain**: native support stays at Tavily and Brave; any other engine — including local ones like SearXNG or self-hosted Firecrawl — can be added by dropping a `.ts` plugin. Zero-config behavior is unchanged. Local-first direction from #4 by @fank, whose providers live on as example plugins.
+Web search is rebuilt as a **hot-pluggable provider chain**: native support stays at Tavily and Brave; any other engine, including local ones like SearXNG or self-hosted Firecrawl, can be added by dropping a `.ts` plugin. Zero-config behavior is unchanged. Local-first direction from #4 by @fank, whose providers live on as example plugins.
 
 ### Added
 - Custom search providers: drop a `.ts` file into `~/.pi/agent/pi-deep-research/providers/`, list it in the chain, `/reload` (contract and examples in `examples/`).
@@ -112,7 +112,7 @@ Web search is rebuilt as a **hot-pluggable provider chain**: native support stay
 - Unknown provider names and malformed `config.json` fail fast at startup with actionable errors.
 - Tool results match pi's `AgentToolResult` contract; removed the never-honored `isError` field.
 
-Upgrading from 0.1.6: nothing to do — defaults, tool schemas, and output format are unchanged.
+Upgrading from 0.1.6: nothing to do, defaults, tool schemas, and output format are unchanged.
 
 ## [0.1.0] - 2026-03-21
 
