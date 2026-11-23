@@ -10,7 +10,7 @@ description: "Changelog for pi-deep-research skill"
 - Diagram rendering at finalize is on by default; a missing mmdc warns instead of failing.
 
 ### Added
-- Diagram lint now also warns past 15 flowchart nodes and on a repeated diagram; rendered packages get `README.rendered.md` with image links for viewers without Mermaid.
+- Diagram lint now also warns past 9 nodes or 12 arrows (the diagram-design budget) and on a repeated diagram; rendered packages get `README.rendered.md` with image links, captioned, for viewers without Mermaid. The report template says how to choose a diagram type.
 - Diagram lint (captions, labelled arrows, comparison diagram) as finalize warnings, and a comparison skeleton in the report template.
 - Finalize writes an evidence graph (finding to source domain, with tier and read status) beside the package.
 - Pie and xychart-beta charts must match rows of a table in the report.

@@ -111,9 +111,14 @@ describe("template examples", () => {
 describe("diagram density, repeats and embedding", () => {
 	const chain = (n: number) => "flowchart LR\n" + Array.from({ length: n - 1 }, (_, i) => `  N${i} -->|step| N${i + 1}`).join("\n");
 	const cap = "This drawing shows the request path through each stage in order.";
-	it("warns past 15 nodes, not at 15", () => {
-		assert.match(lintDiagrams(`${cap}\n\n\`\`\`mermaid\n${chain(16)}\n\`\`\``).join("\n"), /16 nodes/);
-		assert.deepEqual(lintDiagrams(`${cap}\n\n\`\`\`mermaid\n${chain(15)}\n\`\`\``), []);
+	it("warns past 9 nodes, not at 9", () => {
+		assert.match(lintDiagrams(`${cap}\n\n\`\`\`mermaid\n${chain(10)}\n\`\`\``).join("\n"), /10 nodes/);
+		assert.deepEqual(lintDiagrams(`${cap}\n\n\`\`\`mermaid\n${chain(9)}\n\`\`\``), []);
+	});
+	it("warns past 12 arrows", () => {
+		const many = "flowchart LR\n" + Array.from({ length: 13 }, (_, i) => `  A -->|e${i}| B`).join("\n");
+		assert.match(lintDiagrams(`${cap}\n\n\`\`\`mermaid\n${many}\n\`\`\``).join("\n"), /13 arrows/);
+		assert.ok(!lintDiagrams(`${cap}\n\n\`\`\`mermaid\n${many.split("\n").slice(0, 13).join("\n")}\n\`\`\``).some((w) => /arrows; past/.test(w)));
 	});
 	it("counts nodes on chained arrows and ignores repeated ids", () => {
 		const src = "flowchart LR\n  A -->|x| B -->|y| C\n  A -->|z| C";
@@ -130,5 +135,9 @@ describe("diagram density, repeats and embedding", () => {
 		assert.equal(out.match(/!\[Diagram 2\]\(diagrams\/diagram-2\.svg\)/g)?.length, 1);
 		assert.ok(out.indexOf("diagram-2.svg") > out.lastIndexOf("-->|2|"));
 		assert.equal(embedRenderedDiagrams("no diagrams", [1]), "no diagrams");
+	});
+	it("uses the caption as the image alt text, with brackets removed", () => {
+		const r = "Latency fell [sharply] after the queue was added to the path.\n\n```mermaid\nflowchart LR\n  A -->|x| B\n```\n";
+		assert.match(embedRenderedDiagrams(r, [1]), /!\[Latency fell sharply after the queue was added to the path\.\]\(diagrams\/diagram-1\.svg\)/);
 	});
 });

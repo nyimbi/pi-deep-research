@@ -86,13 +86,21 @@ to the report, so the README stays the text the author wrote.
 **Lint (warnings only).** `lintDiagrams` warns when a diagram has no caption sentence of five words or more
 directly before or after it, when most flowchart arrows carry no label (`-->|text|`, `-- text -->`,
 `==>|text|` and `-. text .->` all count), when a sequence message has no text, and when a `## Comparison`
-section has no diagram, when a flowchart has more than 15 nodes, and when a diagram repeats an earlier one
+section has no diagram, when a flowchart has more than 9 nodes or 12 arrows (the diagram-design skill's budget), and when a diagram repeats an earlier one
 verbatim. These are style, so they never fail a strict run. The template's comparison
 skeleton (before and after, the added edges styled) is tested to stay valid.
 
 When diagrams render, the package also gets `README.rendered.md`: the report with an image link to
 `diagrams/diagram-N.svg` after each rendered block, for viewers that do not draw Mermaid. `README.md` stays the
 report that the gates checked.
+The image alt text is the diagram's caption sentence.
+
+**Publishing a diagram as a page.** The `diagram-design` skill redraws a diagram as an editorial, self-contained
+HTML page with inline SVG; it does not convert Mermaid. It is a Claude Code skill, so it runs after finalize,
+not inside the Pi extension. Run `python3 ~/.claude/skills/diagram-design/scripts/mermaid_extract.py <package>/README.md`
+to get each diagram's nodes, edges and budget flags, redraw from that, and carry the `%% source:` URL into the
+drawing's `<desc>`. The redrawn page is not checked by the ledger gates; only the Mermaid it came from is, so a
+figure must not appear in the page that is not in the checked source. See `docs/research/diagram-design/`.
 
 **Render check.** On by default (`DIAGRAM_RENDER=off` or `diagrams.render: false` disables it), finalize also renders each block with
 `mmdc` (`src/diagram-render.ts`). A parse error fails a strict run with mmdc's own message, and each good

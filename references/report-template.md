@@ -172,6 +172,24 @@ pie, xychart-beta and the other standard types). Rules, enforced by `research_fi
 - A `pie` or `xychart-beta` chart must plot figures that appear in a table in the report: put the table first, cite its rows, then chart it. Each plotted label and value must be in one row.
 - A purely structural diagram needs no source. Put the caption and a cited sentence beside it.
 
+### Choosing and sizing a diagram
+
+Ask first: would the reader learn more from this than from a table or a paragraph? If a three-column table
+says the same thing, use the table. Then remove what you can: merge two nodes that always travel together,
+drop an arrow the layout already implies. Keep to nine nodes and twelve arrows; past that it is an overview
+plus a detail. Lint warns at those limits. Pick the Mermaid type by what you are showing:
+
+| Showing | Mermaid type |
+|---|---|
+| Components and connections, decision logic, a process | `flowchart` |
+| Time-ordered messages between actors | `sequenceDiagram` |
+| States, transitions and guards | `stateDiagram-v2` |
+| Entities and relationships | `erDiagram` |
+| Events or tasks over time | `timeline`, `gantt` |
+| Two-axis positioning | `quadrantChart` |
+| A quantity across categories or parts of a whole (backed by a table) | `xychart-beta`, `pie` |
+| What an experience feels like across stages | `journey` |
+
 ### Comparing options
 
 Draw the difference, not two separate boxes. Put each option in its own subgraph with the same

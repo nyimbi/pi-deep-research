@@ -253,7 +253,7 @@ evidence ledger.
 4. For a `literature` review, add the **Search strategy and screening** section: databases, exact queries, search dates, inclusion/exclusion criteria, and the identified/screened/included counts. A review with no search record is not systematic.
 5. Label inference. "The evidence shows X" and "I infer X" are different claims.
 6. Use a line pin when the extracted text exposes line numbers: `[Source](https://example.com/page) (line 42)`. Otherwise quote a short span and name the section. Never invent a line number.
-7. Add a Mermaid diagram only where it shows structure prose cannot. Put `%% source: <url>` inside any block that shows figures (see the Diagrams section of the template).
+7. Add a Mermaid diagram only where it shows structure prose cannot and a table would not do the same job; keep it to 9 nodes and 12 arrows, with a one-sentence caption beside it. Put `%% source: <url>` inside any block that shows figures (see the Diagrams section of the template).
 8. The report is a RESEARCH REPORT ONLY, do not implement findings, write code, or make system changes.
 
 **Critic pass.** Before finalizing, re-read the draft once against the rubric and the claim

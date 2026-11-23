@@ -132,13 +132,22 @@ export function checkDiagrams(report: string, ledger: SourceLedger): string[] {
 
 const EDGE = /-\.->|\.->|==>|-->|---|--[ox]/g;
 const LABELED = /(?:-->|---|==>|-\.->)\s*\|[^|]+\||--\s+[^-|>\s][^-|>]*?\s+-->|==\s+[^=|>\s][^=|>]*?\s+==>|-\.\s+[^-.|>\s][^|>]*?\s+\.->/g;
-const MAX_NODES = 15;
+/** The diagram-design skill's per-diagram budget: past either limit it is two diagrams. */
+const MAX_NODES = 9;
+const MAX_EDGES = 12;
 const NOT_EDGE_LINE = /^(?:subgraph|end\b|style|classDef|class|click|linkStyle|direction|%%)/;
 
 function proseLine(line: string | undefined): boolean {
 	if (!line) return false;
 	const text = line.trim();
 	return !/^(?:#|```|\||<!--)/.test(text) && text.split(/\s+/).length >= 5;
+}
+
+function captionOf(report: string, block: DiagramBlock): string | undefined {
+	const lines = (t: string) => t.split("\n").map((l) => l.trim()).filter(Boolean);
+	const before = lines(report.slice(0, block.start)).at(-1);
+	const after = lines(report.slice(block.end))[0];
+	return [before, after].find(proseLine);
 }
 
 /** Style findings, always warnings: a caption beside each diagram and labelled arrows. */
@@ -168,7 +177,8 @@ export function lintDiagrams(report: string): string[] {
 					if (id) nodes.add(id[1]);
 				}
 			}
-			if (nodes.size > MAX_NODES) out.push(`${label} has ${nodes.size} nodes; past ${MAX_NODES} a flowchart stops being read, so split it or drop what the argument does not turn on`);
+			if (nodes.size > MAX_NODES) out.push(`${label} has ${nodes.size} nodes; past ${MAX_NODES} a flowchart is better as two diagrams: an overview and a detail`);
+			if (edges > MAX_EDGES) out.push(`${label} has ${edges} arrows; past ${MAX_EDGES} split it into an overview and a detail`);
 			if (edges >= 2 && labeled * 2 < edges) out.push(`${label} labels ${labeled} of ${edges} arrows; an unlabelled arrow says only "related"`);
 		} else if (kind === "sequenceDiagram") {
 			const bare = lines.filter((l) => /^[^%]*?(?:->>|-->>|->|-->|-x|--x|-\)|--\))/.test(l) && !/^(?:participant|actor|note|loop|alt|opt|par|rect|autonumber|activate|deactivate)\b/i.test(l) && !l.includes(":"));
@@ -193,7 +203,8 @@ export function embedRenderedDiagrams(report: string, rendered: Iterable<number>
 	let at = 0;
 	for (const block of mermaidBlocks(report)) {
 		if (!ok.has(block.index)) continue;
-		out += `${report.slice(at, block.end)}\n\n![Diagram ${block.index}](diagrams/diagram-${block.index}.svg)`;
+		const alt = (captionOf(report, block) ?? `Diagram ${block.index}`).replace(/[\[\]\n]/g, " ").replace(/\s+/g, " ").slice(0, 200);
+		out += `${report.slice(at, block.end)}\n\n![${alt}](diagrams/diagram-${block.index}.svg)`;
 		at = block.end;
 	}
 	return out + report.slice(at);
