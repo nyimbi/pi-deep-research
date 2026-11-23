@@ -78,7 +78,7 @@ export function inline(text: string, ctx: Ctx): string {
 		const safe = /^(https?:|mailto:|#|\.{0,2}\/)/i.test(href) ? href : "#";
 		return keep(`<a href="${esc(safe)}">${esc(label)}</a>`);
 	});
-	s = esc(s).replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>").replace(/(?<![\w*])\*([^*\n]+)\*(?![\w*])/g, "<em>$1</em>").replace(/(?<![\w_])_([^_\n]+)_(?![\w_])/g, "<em>$1</em>");
+	s = esc(s).replace(/\s*\(derived:\s*([A-Za-z_]\w*)\s*\)/g, (_m, name: string) => `<sup class="derived" title="Computed in the calculation: ${name}">calc</sup>`).replace(/[⭐🔵🟡🔴]\s*Tier\s*(\d)/gu, (_m, n: string) => `<span class="tier${n === "1" ? " t1" : ""}">Tier ${n}</span>`).replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>").replace(/(?<![\w*])\*([^*\n]+)\*(?![\w*])/g, "<em>$1</em>").replace(/(?<![\w_])_([^_\n]+)_(?![\w_])/g, "<em>$1</em>");
 	return s.replace(/\u0000(\d+)\u0000/g, (_m, i: string) => stash[Number(i)] ?? "");
 }
 
@@ -247,7 +247,7 @@ main{min-width:0}
 h2{font:400 1.7rem/1.2 var(--serif);margin:2.6rem 0 .8rem;padding-top:.4rem}h3{font:600 1.05rem/1.3 var(--sans);margin:1.8rem 0 .4rem}h4{font:600 .95rem var(--sans);margin:1.4rem 0 .3rem;color:var(--muted)}
 p,ul,ol,blockquote{margin:0 0 1rem}li{margin:0 0 .35rem}
 a{color:var(--ink);text-decoration-color:var(--accent);text-underline-offset:.18em}a:hover{color:var(--accent)}
-a.cite{text-decoration-style:dotted}sup.ref{font:500 .65rem var(--mono);margin-left:.1rem}sup.ref a{color:var(--accent);text-decoration:none}
+a.cite{text-decoration-style:dotted}sup.derived{font:500 .6rem var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--soft);margin-left:.25rem}sup.ref{font:500 .65rem var(--mono);margin-left:.1rem}sup.ref a{color:var(--accent);text-decoration:none}
 code{font:.86em var(--mono);background:var(--tint);padding:.08em .3em;border-radius:3px}
 pre{background:var(--node);border:1px solid var(--rule);border-radius:6px;padding:.9rem 1rem;overflow:auto;font-size:.82rem;line-height:1.5}pre code{background:none;padding:0}
 hr{border:0;border-top:1px solid var(--rule);margin:2rem 0}

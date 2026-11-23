@@ -157,6 +157,25 @@ the page at 1280 and 390 px and warns on sideways overflow, an image that did no
 prints `report.pdf` from the same file. No browser means no checks and no PDF, with no warning beyond the missing
 file. Settings: `report.html` (default true), `report.check` (default true), `report.chrome`.
 
+### Calc blocks and publication checks
+
+A fenced `calc` block keeps a report's arithmetic in one place:
+
+```text
+tail_ms = 1830 @ https://example.org/latency-study
+budget_ms = 2000 @ assumed
+headroom_pct = (budget_ms - tail_ms) / budget_ms * 100
+```
+
+Inputs carry `@ <url>` or `@ assumed`. A URL input must be a source the tools returned, and its number must appear
+in the archived text. Formulas use earlier names with `+ - * /` and parentheses, evaluated by a small parser (no
+`eval`). A sentence marked `(derived: headroom_pct)` must print the value, rounded to the decimals it shows.
+Problems are errors in a strict run and warnings otherwise. The page draws the block as a table with each
+source linked, and shows the tag as a small "calc" marker.
+
+Two warnings ask for better writing: a deep or exhaustive report with no "How it works" section of three
+explanatory paragraphs, and a diagram label whose words the prose never uses.
+
 ## Notes, evidence IDs and resume
 
 `research_notes` keeps `notes.json` and `notes.md` beside the package, plus a ledger snapshot,

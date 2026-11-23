@@ -251,6 +251,23 @@ theme that connects all the competitive products examined in this report.
 
 ---
 
+## Publication standard
+
+Finalize turns the report into `report.html` and `report.pdf`, so write for a reader who opens the page, not
+the Markdown. The two exemplars in `examples/reports/` (`decision-retry-timeout.md`, `comparison-job-queues.md`)
+are the bar; copy the closer one instead of starting from nothing.
+
+- **Explain the mechanism.** At deep and exhaustive depth, include a `## How it works` section of at least three
+  explanatory paragraphs in the report's own numbers. Finalize warns when it is missing or thin.
+- **Name things once.** Every diagram label must be a term the prose uses. Finalize warns on a label whose words
+  never appear in the text.
+- **One place for derived numbers.** Put arithmetic in a fenced `calc` block and mark each sentence that prints a
+  result with `(derived: name)`. Inputs are `name = 1830 @ <source url>` (the number must appear in that archived
+  source) or `name = 2000 @ assumed`; formulas use earlier names with `+ - * /` and parentheses. A wrong input, a
+  formula error or a sentence that prints a different value fails a strict run.
+- **Every citation opens its passage.** Cite the source whose archived text supports the sentence; the page shows
+  the closest paragraph of that text behind the link.
+
 ## Sections the finalizer requires
 
 `research_finalize` looks for these exact `##` headings, so the display titles above map to

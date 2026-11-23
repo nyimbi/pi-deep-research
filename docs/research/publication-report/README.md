@@ -1,6 +1,6 @@
 # Publication-quality reports
 
-Status: page, passages, colophon, PDF and browser check done; calc blocks, how-it-works lint and exemplars to follow. Source of the idea: the `machine-works` skill's shared doctrine, read from
+Status: page, passages, colophon, PDF, browser check, calc blocks, mechanism and label lint, exemplars done. Open: accent discipline in charts, claim-level layout polish.
 `~/.claude/skills/machine-works/SKILL.md` on 2026-11-23. Nothing is copied from it; the rules are applied to
 reports.
 

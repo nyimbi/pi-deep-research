@@ -324,3 +324,17 @@ describe("report.html and report.pdf", () => {
 		assert.ok(!(await readdir(join(root, "docs", "research", "off"))).includes("report.html"));
 	});
 });
+
+describe("publication warnings in finalize", () => {
+	it("warns a deep report with no mechanism section and a diagram label the prose never uses, but not a standard one", async () => {
+		const root = await cwd();
+		const withDiagram = `${REPORT}\n## Diagrams\n\nThe valve admits or parks each request.\n\n\`\`\`mermaid\nflowchart LR\n  A[Zebra latch] --> B[Quartz store]\n\`\`\`\n`;
+		const base = { cwd: root, slug: "pub", question: "q", ledger: ledgerWith(), archiveRoot: "docs/research", strict: false };
+		const deep = await writeResearchPackage({ ...base, depth: "deep", report: withDiagram });
+		assert.ok(deep.warnings.some((w) => /no section explains how the subject works/.test(w)));
+		assert.ok(deep.warnings.some((w) => /diagram 1 labels "Zebra latch", "Quartz store"/.test(w)));
+		const standard = await writeResearchPackage({ ...base, slug: "pub2", depth: "standard", report: withDiagram });
+		assert.ok(!standard.warnings.some((w) => /no section explains/.test(w)));
+		assert.ok(standard.warnings.some((w) => /diagram 1 labels/.test(w)));
+	});
+});

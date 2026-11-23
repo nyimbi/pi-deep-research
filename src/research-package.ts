@@ -17,6 +17,7 @@ import { evidenceGraph } from "./evidence-graph.ts";
 import type { DiagramRenderer } from "./diagram-render.ts";
 import type { DocsQaRunner } from "./docs-qa.ts";
 import { checkCalcs } from "./calc.ts";
+import { checkLabelTerms, checkMechanism } from "./report-quality.ts";
 import { renderReportPage, type CitedPassage } from "./report-html.ts";
 import { extractUrls, hostOf, normalizeUrl } from "./normalize.ts";
 
@@ -284,6 +285,7 @@ export async function writeResearchPackage(options: FinalizeOptions): Promise<Fi
 	else warnings.push(...claimIssues);
 
 	warnings.push(...lintDiagrams(report));
+	warnings.push(...checkMechanism(report, options.depth), ...checkLabelTerms(report));
 	const diagramIssues = checkDiagrams(report, options.ledger);
 	if (options.strict !== false) errors.push(...diagramIssues);
 	else warnings.push(...diagramIssues);

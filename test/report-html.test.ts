@@ -14,6 +14,17 @@ describe("markdownToHtml", () => {
 		assert.match(html, /<ul><li>one<\/li><li>two<\/li><\/ul>/);
 		assert.match(html, /<ol><li>x<\/li><li>y<\/li><\/ol>/);
 	});
+	it("shows a tier emoji as a badge, not an emoji", () => {
+		const { html } = markdownToHtml("| a | t |\n|---|---|\n| x | ⭐ Tier 1 |\n| y | 🔴 Tier 4 |\n");
+		assert.match(html, /<span class="tier t1">Tier 1<\/span>/);
+		assert.match(html, /<span class="tier">Tier 4<\/span>/);
+		assert.ok(!/[⭐🔴]/u.test(html));
+	});
+	it("shows a derived tag as a small calc marker that names the value", () => {
+		const { html } = markdownToHtml("Room is 8.5% (derived: headroom_pct).\n");
+		assert.match(html, /8\.5%<sup class="derived" title="Computed in the calculation: headroom_pct">calc<\/sup>\./);
+		assert.ok(!html.includes("(derived"));
+	});
 	it("draws a thematic break instead of printing the dashes", () => {
 		const { html } = markdownToHtml("# T\n\nA.\n\n---\n\nB.\n");
 		assert.match(html, /<p>A\.<\/p>\n<hr>\n<p>B\.<\/p>/);
