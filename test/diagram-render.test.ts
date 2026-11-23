@@ -21,5 +21,9 @@ describe("mmdc renderer", { skip: !hasMmdc, timeout: 120_000 }, () => {
 	it("reports a missing binary instead of throwing", async () => {
 		const out = await createMmdcRenderer({ ...DEFAULT_SETTINGS.diagrams, mmdc: "mmdc-does-not-exist" })("flowchart LR\n A-->B");
 		assert.ok(out.error);
+		assert.equal(out.unavailable, true);
+	});
+	it("a parse error is not marked unavailable", async () => {
+		assert.equal((await render("flowchart LR\n  A -->|reads B\n  C --- ")).unavailable, undefined);
 	});
 });

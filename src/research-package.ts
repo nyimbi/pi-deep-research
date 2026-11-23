@@ -284,7 +284,7 @@ export async function writeResearchPackage(options: FinalizeOptions): Promise<Fi
 		for (const block of mermaidBlocks(report)) {
 			const out = await options.renderDiagram(block.source);
 			if (out.svg) renders.push({ index: block.index, source: block.source, svg: out.svg });
-			else (options.strict !== false ? errors : warnings).push(`diagram ${block.index} does not render: ${out.error ?? "no output"}`);
+			else (options.strict !== false && !out.unavailable ? errors : warnings).push(`diagram ${block.index} does not render: ${out.error ?? "no output"}`);
 		}
 	}
 

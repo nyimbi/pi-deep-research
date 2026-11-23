@@ -89,10 +89,10 @@ directly before or after it, when most flowchart arrows carry no label (`-->|tex
 section has no diagram. These are style, so they never fail a strict run. The template's comparison
 skeleton (before and after, the added edges styled) is tested to stay valid.
 
-**Render check.** With `diagrams.render` (or `DIAGRAM_RENDER=on`) finalize also renders each block with
+**Render check.** On by default (`DIAGRAM_RENDER=off` or `diagrams.render: false` disables it), finalize also renders each block with
 `mmdc` (`src/diagram-render.ts`). A parse error fails a strict run with mmdc's own message, and each good
 block ships as `diagrams/diagram-N.mmd` and `.svg` in the package, so the report reads without a Mermaid
-renderer. Off by default because mmdc needs a headless Chromium; settings `diagrams.{render, mmdc, timeout_ms}`.
+renderer. mmdc needs a headless Chromium, so when it is not installed the run warns ("mmdc is not installed") instead of failing, and the diagrams are checked structurally only. Settings `diagrams.{render, mmdc, timeout_ms}`.
 
 ## Notes, evidence IDs and resume
 

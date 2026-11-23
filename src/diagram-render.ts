@@ -11,6 +11,8 @@ import type { DiagramSettings } from "./settings.ts";
 export interface DiagramRender {
 	svg?: string;
 	error?: string;
+	/** The renderer itself could not run (binary missing), so nothing is known about the diagram. */
+	unavailable?: boolean;
 }
 export type DiagramRenderer = (source: string) => Promise<DiagramRender>;
 
@@ -21,14 +23,16 @@ export function createMmdcRenderer(settings: DiagramSettings): DiagramRenderer {
 			const input = join(dir, "in.mmd");
 			const output = join(dir, "out.svg");
 			await writeFile(input, source, "utf8");
+			let missing = false;
 			const failure = await new Promise<string | null>((resolve) => {
 				execFile(settings.mmdc, ["-i", input, "-o", output, "-q"], { timeout: settings.timeoutMs, maxBuffer: 1 << 20 }, (error, _stdout, stderr) => {
 					if (!error) return resolve(null);
+					if ((error as NodeJS.ErrnoException).code === "ENOENT") missing = true;
 					const line = `${stderr}`.split("\n").map((l) => l.trim()).find((l) => /error|expecting|parse|syntax/i.test(l)) ?? error.message;
 					resolve(line.slice(0, 200));
 				});
 			});
-			if (failure) return { error: failure };
+			if (failure) return missing ? { error: `${settings.mmdc} is not installed`, unavailable: true } : { error: failure };
 			return { svg: await readFile(output, "utf8") };
 		} catch (error) {
 			return { error: error instanceof Error ? error.message : String(error) };

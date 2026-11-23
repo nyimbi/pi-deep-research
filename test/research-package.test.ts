@@ -159,6 +159,9 @@ describe("writeResearchPackage", () => {
 		const bad = await run("rd-bad", async () => ({ error: "Parse error on line 2" }));
 		assert.ok(bad.errors.some((e) => /diagram 1 does not render: Parse error/.test(e)));
 		assert.ok((await run("rd-warn", async () => ({ error: "x" }), false)).warnings.some((w) => /does not render/.test(w)));
+		const absent = await run("rd-absent", async () => ({ error: "mmdc is not installed", unavailable: true }));
+		assert.ok(!absent.errors.some((e) => /render/.test(e)), "a missing renderer must not fail finalize");
+		assert.ok(absent.warnings.some((w) => /mmdc is not installed/.test(w)));
 		const good = await run("rd-good", async () => ({ svg: "<svg id=\"ok\"/>" }));
 		assert.ok(!good.errors.some((e) => /render/.test(e)));
 		const { readFile } = await import("node:fs/promises");

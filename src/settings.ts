@@ -82,7 +82,7 @@ export interface DoclingSettings {
 }
 
 export interface DiagramSettings {
-	/** Render each Mermaid block with mmdc at finalize: a parse error fails the run and the SVG ships in the package. Off by default. */
+	/** Render each Mermaid block with mmdc at finalize: a parse error fails the run and the SVG ships in the package. On by default; a missing mmdc only warns. */
 	render: boolean;
 	mmdc: string;
 	timeoutMs: number;
@@ -187,7 +187,7 @@ export const DEFAULT_SETTINGS: ResearchSettings = {
 	llm: { model: "", timeoutMs: 120_000 },
 	workers: { enabled: true, concurrency: 2, timeoutMs: 600_000 },
 	browser: { enabled: false, python: "python3", timeoutMs: 45_000 },
-	diagrams: { render: false, mmdc: "mmdc", timeoutMs: 60_000 },
+	diagrams: { render: true, mmdc: "mmdc", timeoutMs: 60_000 },
 	docling: { enabled: false, command: "docling", device: "cpu", vlmModel: "", ocr: true, timeoutMs: 300_000 },
 	local: { enabled: true, minWords: 80, minCharsPerPage: 200, pdftotext: "pdftotext", maxPages: 200 },
 	uocr: {
@@ -365,7 +365,7 @@ export async function loadSettings(options: LoadSettingsOptions = {}): Promise<R
 			timeoutMs: number(workersRaw.timeout_ms, DEFAULT_SETTINGS.workers.timeoutMs, "workers.timeout_ms"),
 		},
 		diagrams: {
-			render: bool(env.DIAGRAM_RENDER === "on" ? true : diagramsRaw.render, DEFAULT_SETTINGS.diagrams.render, "diagrams.render"),
+			render: bool(env.DIAGRAM_RENDER === "on" ? true : env.DIAGRAM_RENDER === "off" ? false : diagramsRaw.render, DEFAULT_SETTINGS.diagrams.render, "diagrams.render"),
 			mmdc: text(diagramsRaw.mmdc, DEFAULT_SETTINGS.diagrams.mmdc, "diagrams.mmdc"),
 			timeoutMs: number(diagramsRaw.timeout_ms, DEFAULT_SETTINGS.diagrams.timeoutMs, "diagrams.timeout_ms"),
 		},

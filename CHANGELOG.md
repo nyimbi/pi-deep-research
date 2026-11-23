@@ -6,6 +6,9 @@ description: "Changelog for pi-deep-research skill"
 
 ## [Unreleased]
 
+### Changed
+- Diagram rendering at finalize is on by default; a missing mmdc warns instead of failing.
+
 ### Added
 - Diagram lint (captions, labelled arrows, comparison diagram) as finalize warnings, and a comparison skeleton in the report template.
 - Finalize writes an evidence graph (finding to source domain, with tier and read status) beside the package.
