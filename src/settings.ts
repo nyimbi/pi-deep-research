@@ -58,6 +58,17 @@ export interface LlmSettings {
 	timeoutMs: number;
 }
 
+export interface LocalExtractSettings {
+	/** In-process HTML extraction and the PDF text layer, tried before any network extractor. */
+	enabled: boolean;
+	/** An HTML result with fewer words is declined, so the chain falls through. */
+	minWords: number;
+	/** A PDF averaging fewer non-space characters per page than this is treated as scanned. */
+	minCharsPerPage: number;
+	pdftotext: string;
+	maxPages: number;
+}
+
 export interface UocrSettings {
 	/** Base URL of the SGLang server; empty disables the provider. */
 	baseUrl: string;
@@ -104,6 +115,7 @@ export interface ResearchSettings {
 	ollama: OllamaSettings;
 	embeddings: EmbeddingSettings;
 	llm: LlmSettings;
+	local: LocalExtractSettings;
 	uocr: UocrSettings;
 	context: ContextSettings;
 	archiveRoot: string;
@@ -130,6 +142,7 @@ export const DEFAULT_SETTINGS: ResearchSettings = {
 	ollama: { enabled: true, host: "127.0.0.1", port: "11434" },
 	embeddings: { enabled: true, model: "embeddinggemma", queryPrefix: "" },
 	llm: { model: "", timeoutMs: 120_000 },
+	local: { enabled: true, minWords: 80, minCharsPerPage: 200, pdftotext: "pdftotext", maxPages: 200 },
 	uocr: {
 		baseUrl: "",
 		model: "Unlimited-OCR-2",
@@ -231,6 +244,7 @@ export async function loadSettings(options: LoadSettingsOptions = {}): Promise<R
 	const ollamaRaw = object(raw.ollama, "ollama");
 	const embeddingsRaw = object(raw.embeddings, "embeddings");
 	const llmRaw = object(raw.llm, "llm");
+	const localRaw = object(raw.local_extract, "local_extract");
 	const uocrRaw = object(raw.unlimited_ocr, "unlimited_ocr");
 	const contextRaw = object(raw.context, "context");
 	const safetyRaw = object(raw.safety, "safety");
@@ -290,6 +304,13 @@ export async function loadSettings(options: LoadSettingsOptions = {}): Promise<R
 		llm: {
 			model: env.LLM_MODEL?.trim() || text(llmRaw.model, DEFAULT_SETTINGS.llm.model, "llm.model"),
 			timeoutMs: number(llmRaw.timeout_ms, DEFAULT_SETTINGS.llm.timeoutMs, "llm.timeout_ms"),
+		},
+		local: {
+			enabled: bool(env.LOCAL_EXTRACT === "off" ? false : localRaw.enabled, DEFAULT_SETTINGS.local.enabled, "local_extract.enabled"),
+			minWords: number(localRaw.min_words, DEFAULT_SETTINGS.local.minWords, "local_extract.min_words"),
+			minCharsPerPage: number(localRaw.min_chars_per_page, DEFAULT_SETTINGS.local.minCharsPerPage, "local_extract.min_chars_per_page"),
+			pdftotext: text(localRaw.pdftotext, DEFAULT_SETTINGS.local.pdftotext, "local_extract.pdftotext"),
+			maxPages: number(localRaw.max_pages, DEFAULT_SETTINGS.local.maxPages, "local_extract.max_pages"),
 		},
 		uocr: {
 			baseUrl: (env.UOCR_BASE_URL ?? text(uocrRaw.base_url, DEFAULT_SETTINGS.uocr.baseUrl, "unlimited_ocr.base_url")).trim().replace(/\/+$/, ""),

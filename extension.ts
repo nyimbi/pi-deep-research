@@ -28,6 +28,7 @@ import {
 	createSemanticScholarProvider,
 	createSearxngProvider,
 	createTavilyProvider,
+	createLocalExtractProvider,
 	createUnlimitedOcrProvider,
 } from "./src/native/index.ts";
 import { chunkText, headWords } from "./src/chunks.ts";
@@ -106,7 +107,11 @@ export default async function (pi: ExtensionAPI) {
 		createJiti(import.meta.url),
 	);
 	for (const warning of warnings) console.warn(warning);
+	const localExtract = createLocalExtractProvider(settings.local, {
+		capture: (url) => rawStore.capture(url, { policy: settings.safety, maxBytes: settings.archiveMaxBytes }),
+	});
 	const fullChain = resolveChain([...native, ...plugins], settings.providers);
+
 	const chainFor = (sources: "web" | "academic" | "all") => {
 		if (sources === "web") return fullChain.filter((provider) => !ACADEMIC.has(provider.name));
 		if (sources === "academic") {
@@ -223,7 +228,7 @@ export default async function (pi: ExtensionAPI) {
 					continue;
 				}
 				try {
-					const result = await chainExtract(chainFor("web"), url, {
+					const result = await chainExtract([localExtract, ...chainFor("web")], url, {
 						timeoutMs: settings.timeoutMs,
 						cache,
 						cacheTtlMs: settings.cache.extractTtlMs,

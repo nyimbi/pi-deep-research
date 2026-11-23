@@ -245,6 +245,11 @@ export async function chainExtract(
 			opts.ledger?.recordExtract(url, result);
 			return result;
 		} catch (e) {
+			// A payment wall is terminal for the URL: stop here instead of asking every provider.
+			if (e instanceof HttpStatusError && e.status === 402) {
+				opts.ledger?.recordUrlStatus(url, "payment_required", "HTTP 402");
+				throw e;
+			}
 			opts.breaker?.recordFailure(provider.name);
 			const message = e instanceof Error ? e.message : String(e);
 			opts.ledger?.recordFailure(provider.name, "extract", message);

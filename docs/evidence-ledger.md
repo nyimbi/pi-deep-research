@@ -72,3 +72,24 @@ no ID or an unknown ID, and on an unsatisfied mandatory rubric item. It warns ab
 rubric item, a sub-question with no finding in the report, and a run with no recorded critic
 revision. The rubric is written by the agent from the user's request; nothing expands it.
 
+## Local extraction
+
+`web_extract` tries the in-process `local` provider before any network extractor
+(`src/native/local-extract.ts`). It fetches under the SSRF policy, archives the raw bytes, then:
+
+- **HTML:** `src/html-extract.ts` parses the page, drops scripts, navigation, footers, cookie
+  banners and hidden elements (`hidden`, `aria-hidden`, `display:none`), picks the main
+  content by text density, and writes Markdown with tables and resolved links. Dropping hidden
+  text also removes a common prompt-injection hiding place.
+- **PDF:** the text layer is read with `pdftotext`, with a `[page N]` marker per page so a
+  citation can point at a page. A PDF averaging fewer than `min_chars_per_page` (200)
+  non-space characters per page is treated as scanned and declined, so only scans reach OCR.
+- A page yielding fewer than `min_words` (80) is declined as likely client-rendered, and the
+  chain falls through to the next provider. A 402 stops the chain.
+
+Measure it with `node scripts/html-eval.ts`: mean token F1 per page type against hand-written
+gold text, next to the old regex strip. On the 8-page fixture the local extractor scores 0.88
+to 1.00 against 0.78 to 0.86. The fixture is small and self-authored, so read it as a
+regression test, not a benchmark. Settings: `local_extract.{enabled, min_words,
+min_chars_per_page, pdftotext, max_pages}`; `LOCAL_EXTRACT=off` disables it.
+

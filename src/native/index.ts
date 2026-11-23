@@ -3,6 +3,7 @@ export { createAgentReachProvider } from "./agent-reach.ts";
 export { createArxivProvider } from "./arxiv.ts";
 export { createBraveProvider } from "./brave.ts";
 export { createJinaProvider } from "./jina.ts";
+export { createLocalExtractProvider } from "./local-extract.ts";
 export { createOllamaProvider } from "./ollama.ts";
 export { createSemanticScholarProvider } from "./semantic-scholar.ts";
 export { createSearxngProvider } from "./searxng.ts";
