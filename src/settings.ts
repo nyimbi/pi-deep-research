@@ -81,6 +81,13 @@ export interface DoclingSettings {
 	timeoutMs: number;
 }
 
+export interface BrowserSettings {
+	/** Render JavaScript pages in a local headless Chromium (Python Playwright). Off by default. */
+	enabled: boolean;
+	python: string;
+	timeoutMs: number;
+}
+
 export interface UocrSettings {
 	/** Base URL of the SGLang server; empty disables the provider. */
 	baseUrl: string;
@@ -133,6 +140,7 @@ export interface ResearchSettings {
 	llm: LlmSettings;
 	local: LocalExtractSettings;
 	docling: DoclingSettings;
+	browser: BrowserSettings;
 	uocr: UocrSettings;
 	context: ContextSettings;
 	archiveRoot: string;
@@ -159,6 +167,7 @@ export const DEFAULT_SETTINGS: ResearchSettings = {
 	ollama: { enabled: true, host: "127.0.0.1", port: "11434" },
 	embeddings: { enabled: true, model: "embeddinggemma", queryPrefix: "" },
 	llm: { model: "", timeoutMs: 120_000 },
+	browser: { enabled: false, python: "python3", timeoutMs: 45_000 },
 	docling: { enabled: false, command: "docling", device: "cpu", vlmModel: "", ocr: true, timeoutMs: 300_000 },
 	local: { enabled: true, minWords: 80, minCharsPerPage: 200, pdftotext: "pdftotext", maxPages: 200 },
 	uocr: {
@@ -266,6 +275,7 @@ export async function loadSettings(options: LoadSettingsOptions = {}): Promise<R
 	const llmRaw = object(raw.llm, "llm");
 	const localRaw = object(raw.local_extract, "local_extract");
 	const doclingRaw = object(raw.docling, "docling");
+	const browserRaw = object(raw.browser, "browser");
 	const uocrRaw = object(raw.unlimited_ocr, "unlimited_ocr");
 	const contextRaw = object(raw.context, "context");
 	const safetyRaw = object(raw.safety, "safety");
@@ -325,6 +335,11 @@ export async function loadSettings(options: LoadSettingsOptions = {}): Promise<R
 		llm: {
 			model: env.LLM_MODEL?.trim() || text(llmRaw.model, DEFAULT_SETTINGS.llm.model, "llm.model"),
 			timeoutMs: number(llmRaw.timeout_ms, DEFAULT_SETTINGS.llm.timeoutMs, "llm.timeout_ms"),
+		},
+		browser: {
+			enabled: bool(env.BROWSER_RENDER === "on" ? true : browserRaw.enabled, DEFAULT_SETTINGS.browser.enabled, "browser.enabled"),
+			python: text(browserRaw.python, DEFAULT_SETTINGS.browser.python, "browser.python"),
+			timeoutMs: number(browserRaw.timeout_ms, DEFAULT_SETTINGS.browser.timeoutMs, "browser.timeout_ms"),
 		},
 		docling: {
 			enabled: bool(env.DOCLING === "on" ? true : doclingRaw.enabled, DEFAULT_SETTINGS.docling.enabled, "docling.enabled"),

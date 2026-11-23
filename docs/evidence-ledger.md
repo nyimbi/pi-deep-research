@@ -120,3 +120,18 @@ fails with a float64 error, and a 1-page PDF took about 6 s on CPU. Set `docling
 (for example `granite_docling`) to use a VLM preset instead. It declines web pages without
 running anything. The Unlimited-OCR provider remains the heavy option for scans.
 
+## Browser rendering
+
+`src/native/browser.ts` renders JavaScript pages in a local headless Chromium through Python
+Playwright (`scripts/render.py`), then runs the result through the same HTML extractor. It is off
+by default (`browser.enabled` or `BROWSER_RENDER=on`) and sits after the local providers, so it
+runs only when plain extraction declined the page.
+
+The script sends every request the page makes, subresources and redirects included, to the
+Node process, which answers with the same fetch-safety policy as every other fetch
+(`assertFetchableUrlResolved`). A refused request is aborted before it leaves the browser, and
+the count is logged. Each run uses a fresh context: no cookies or storage carried between
+pages, no service workers, no downloads. Not covered: WebSocket connections, which Playwright's
+request routing does not intercept, so run it on hosts where outbound traffic is otherwise
+restricted if that matters.
+
