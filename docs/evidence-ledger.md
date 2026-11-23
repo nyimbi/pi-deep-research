@@ -141,6 +141,22 @@ figure must not appear in the page that is not in the checked source. See `docs/
 block ships as `diagrams/diagram-N.mmd` and `.svg` in the package, so the report reads without a Mermaid
 renderer. mmdc needs a headless Chromium, so when it is not installed the run warns ("mmdc is not installed") instead of failing, and the diagrams are checked structurally only. Settings `diagrams.{render, mmdc, timeout_ms}`.
 
+## Offline report page
+
+Finalize writes `report.html` beside the README: one file, no network. It has a contents list, light and dark
+skins (the same tokens as the diagrams), a print stylesheet, every editorial diagram inlined in both skins, and a
+colophon with the question, depth, confidence, evidence grade, source counts and what was not checked.
+
+Every citation to an archived source opens the passage it rests on: the paragraph of the archived text that shares
+the most words with the citing sentence, with the source's tier, URL and archive file. The same passages sit in a
+"Passages" section, so print and PDF carry them. A source with no matching paragraph says so instead of showing
+an arbitrary one. Raw HTML in the report is escaped; unsafe link schemes become `#`.
+
+When Chrome or Chromium is found (`report.chrome`, `CHROME_PATH`, or the usual install paths), finalize also opens
+the page at 1280 and 390 px and warns on sideways overflow, an image that did not load, or a script error, then
+prints `report.pdf` from the same file. No browser means no checks and no PDF, with no warning beyond the missing
+file. Settings: `report.html` (default true), `report.check` (default true), `report.chrome`.
+
 ## Notes, evidence IDs and resume
 
 `research_notes` keeps `notes.json` and `notes.md` beside the package, plus a ledger snapshot,

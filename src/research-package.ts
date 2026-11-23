@@ -16,6 +16,7 @@ import { captionOf, checkDiagrams, embedRenderedDiagrams, lintDiagrams, mermaidB
 import { evidenceGraph } from "./evidence-graph.ts";
 import type { DiagramRenderer } from "./diagram-render.ts";
 import type { DocsQaRunner } from "./docs-qa.ts";
+import { renderReportPage, type CitedPassage } from "./report-html.ts";
 import { extractUrls, hostOf, normalizeUrl } from "./normalize.ts";
 
 export const REQUIRED_HEADINGS = [
@@ -105,6 +106,10 @@ export interface FinalizeOptions {
 	/** Runs the diagram-design skill's checks on a written page; each string is a finding, reported as a warning. */
 	designGates?: (htmlPath: string) => Promise<string[]>;
 	entailment?: (report: string) => Promise<EntailmentReport>;
+	/** Write report.html, the offline page. On by default. */
+	html?: boolean;
+	/** Looks at report.html in a browser (findings are warnings) and prints report.pdf; omit to skip both. */
+	pageChecks?: { check: (html: string) => Promise<string[]>; pdf: (htmlPath: string, pdfPath: string) => Promise<string | null> };
 	now?: Date;
 }
 
@@ -307,6 +312,7 @@ export async function writeResearchPackage(options: FinalizeOptions): Promise<Fi
 	const rows: string[] = [];
 	let archived = 0;
 	let pages = 0;
+	const passages = new Map<string, CitedPassage>();
 	for (const [index, source] of entries.entries()) {
 		let fileName = "-";
 		let digest = "-";
@@ -325,6 +331,7 @@ export async function writeResearchPackage(options: FinalizeOptions): Promise<Fi
 				source.extracted.content,
 			].join("\n");
 			files.set(fileName, content);
+			passages.set(source.normalizedUrl, { title: source.title, url: source.url, tier: source.tier, content: source.extracted.content, archive: `sources/${fileName}` });
 			digest = sha256(content);
 			archived += 1;
 		} else if (cited.has(source.normalizedUrl)) {
@@ -432,6 +439,32 @@ export async function writeResearchPackage(options: FinalizeOptions): Promise<Fi
 		notes: notes ? { findings: notes.findings.length, rubric_satisfied: notes.rubric.filter((r) => r.satisfied).length, rubric_total: notes.rubric.length, revisions: notes.revisions } : null,
 		failures: options.ledger.failureLog(),
 	};
+	if (options.html !== false) {
+		const page = renderReportPage(report, {
+			diagrams: renders.map((r) => ({ index: r.index, svg: r.svg, dark: r.dark?.svg })),
+			sources: passages,
+			generated: (options.now ?? new Date()).toISOString().slice(0, 10),
+			colophon: [
+				{ label: "Question", value: options.question },
+				{ label: "Depth", value: options.depth },
+				{ label: "Confidence", value: options.confidence === undefined ? "not stated" : String(options.confidence) },
+				{ label: "Evidence grade", value: graded.overall ?? "not graded" },
+				{ label: "Sources", value: `${stats.sources} found, ${stats.extracted} read, ${stats.cited} cited` },
+				{ label: "Searches", value: `${stats.searches} searches, ${stats.extracts} extractions` },
+			],
+			limits: [
+				"Each number and quotation in a cited sentence was checked against the archived text of the source it cites; sentences marked derived were not.",
+				...(entailment ? [] : ["The local entailment check did not run, so whether a passage supports its sentence was not judged by a model."]),
+				...(passages.size < citations.known.length ? ["Some cited sources have no archived text; their citations link to the source only."] : []),
+			],
+		});
+		await writeFile(join(packagePath, "report.html"), page.html, "utf8");
+		if (options.pageChecks) {
+			warnings.push(...(await options.pageChecks.check(page.html)));
+			const pdfProblem = await options.pageChecks.pdf(join(packagePath, "report.html"), join(packagePath, "report.pdf"));
+			if (pdfProblem) warnings.push(pdfProblem);
+		}
+	}
 	await writeFile(join(packagePath, "research-package.json"), `${JSON.stringify(metadata, null, 2)}\n`, "utf8");
 	// Outside sources/: every file in sources/ must be an indexed archive.
 	await writeFile(join(packagePath, "ledger.json"), `${JSON.stringify(options.ledger.persist(), null, 2)}\n`, "utf8");

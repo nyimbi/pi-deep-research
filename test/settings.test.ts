@@ -95,6 +95,13 @@ describe("diagram style settings", () => {
 		await assert.rejects(loadSettings({ env: {}, readFileImpl: async () => JSON.stringify({ diagrams: { dark: "yes" } }) }), /diagrams\.dark/);
 		assert.equal((await loadSettings({ env: { DIAGRAM_STYLE: "mermaid" }, readFileImpl: async () => "{}" })).diagrams.style, "mermaid");
 	});
+	it("reads the report settings and rejects a non-boolean", async () => {
+		const r = (await loadSettings({ env: {}, readFileImpl: async () => "{}" })).report;
+		assert.deepEqual(r, { html: true, check: true, chrome: "" });
+		const o = (await loadSettings({ env: {}, readFileImpl: async () => JSON.stringify({ report: { html: false, chrome: "/opt/chrome" } }) })).report;
+		assert.deepEqual(o, { html: false, check: true, chrome: "/opt/chrome" });
+		await assert.rejects(loadSettings({ env: {}, readFileImpl: async () => JSON.stringify({ report: { check: "yes" } }) }), /report\.check/);
+	});
 	it("rejects an unknown style instead of guessing", async () => {
 		await assert.rejects(loadSettings({ env: { DIAGRAM_STYLE: "fancy" }, readFileImpl: async () => "{}" }), /editorial.*mermaid/);
 	});

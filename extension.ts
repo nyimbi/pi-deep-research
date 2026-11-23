@@ -57,6 +57,7 @@ import { HttpStatusError, JsonCache, ProviderBreaker, makeRetryFetch } from "./s
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { loadSettings } from "./src/settings.ts";
+import { checkReportPage, findChrome, printReportPdf } from "./src/report-render.ts";
 import type { Attempt, SearchResult } from "./src/types.ts";
 
 const ACADEMIC = new Set(["arxiv", "semantic-scholar", "openalex", "crossref", "europe-pmc", "pubmed"]);
@@ -703,6 +704,11 @@ export default async function (pi: ExtensionAPI) {
 					docsQa: createDocsQaRunner(),
 					renderDiagram: settings.diagrams.render ? createMmdcRenderer(settings.diagrams) : undefined,
 					styleDiagram: settings.diagrams.style === "editorial" ? (source, ctx) => { const r = styleForPackage(source, ctx); return "dark" in r && !settings.diagrams.dark ? { svg: r.svg, html: r.html } : r; } : undefined,
+					html: settings.report.html,
+					pageChecks: (() => {
+						const chrome = settings.report.check ? findChrome(settings.report.chrome) : null;
+						return chrome ? { check: (html: string) => checkReportPage(chrome, html), pdf: (page: string, pdf: string) => printReportPdf(chrome, page, pdf) } : undefined;
+					})(),
 					designGates: settings.diagrams.style === "editorial" ? (page) => runDesignGates(page, settings.diagrams.designSkillDir) : undefined,
 					entailment: llm() ? (text) => checkEntailment(text, ledger, llm()!, { embedder: embedder() }) : undefined,
 				});

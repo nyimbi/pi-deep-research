@@ -95,6 +95,9 @@ describe("writeResearchPackage", () => {
 		assert.equal(files.filter((file) => file !== "INDEX.md").length, 1);
 		assert.ok((await readdir(packagePath)).includes("research-package.json"));
 		assert.ok((await readdir(packagePath)).includes("ledger.json"));
+		const page = await readFile(join(packagePath, "report.html"), "utf8");
+		assert.match(page, /<h1>Timeout policy<\/h1>/);
+		assert.match(page, /id="colophon"/);
 		const metadata = JSON.parse(await readFile(join(packagePath, "research-package.json"), "utf8"));
 		assert.equal(metadata.archive_root, "docs/research");
 		assert.equal(metadata.confidence, 90);
@@ -283,5 +286,41 @@ describe("checkHonestySections", () => {
 		assert.match(checkHonestySections(base("- g", SCOPE, "- A conflicts with B ([a](https://a.example/x)).")).join(), /fewer than two/);
 		assert.match(checkHonestySections(base("- g", SCOPE, "- A conflicts ([a](https://a.example/x) [a2](https://a.example/x#f)).")).join(), /fewer than two/);
 		assert.match(checkHonestySections(base("- g", SCOPE, "")).join(), /## Contradictions must list/);
+	});
+});
+
+describe("report.html and report.pdf", () => {
+	it("writes the page, hands it to the page check, and prints the pdf from the same file", async () => {
+		const root = await cwd();
+		const seen: string[] = [];
+		const result = await writeResearchPackage({
+			cwd: root,
+			slug: "page",
+			question: "q",
+			depth: "standard",
+			report: REPORT,
+			ledger: ledgerWith(),
+			archiveRoot: "docs/research",
+			pageChecks: {
+				check: async (html) => {
+					seen.push(html);
+					return ["report.html overflows sideways at 390px (page is 900px wide)"];
+				},
+				pdf: async (htmlPath, pdfPath) => {
+					seen.push(htmlPath, pdfPath);
+					return "report.pdf was not written (stub)";
+				},
+			},
+		});
+		assert.match(seen[0]!, /<h1>Timeout policy<\/h1>/);
+		assert.ok(seen[1]!.endsWith("/page/report.html") && seen[2]!.endsWith("/page/report.pdf"));
+		assert.ok(result.warnings.includes("report.html overflows sideways at 390px (page is 900px wide)"));
+		assert.ok(result.warnings.includes("report.pdf was not written (stub)"));
+		assert.deepEqual(result.errors, []);
+	});
+	it("writes nothing when html is off", async () => {
+		const root = await cwd();
+		await writeResearchPackage({ cwd: root, slug: "off", question: "q", depth: "standard", report: REPORT, ledger: ledgerWith(), archiveRoot: "docs/research", html: false });
+		assert.ok(!(await readdir(join(root, "docs", "research", "off"))).includes("report.html"));
 	});
 });

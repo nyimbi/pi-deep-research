@@ -88,10 +88,19 @@ export interface DiagramSettings {
 	timeoutMs: number;
 	/** `editorial` draws simple flowcharts in the diagram-design skill's style and falls back to Mermaid's own drawing for anything else; `mermaid` always uses Mermaid's. */
 	style: "editorial" | "mermaid";
-	/** Where the diagram-design skill is installed. Its self_check.py and verify-geometry.py gate every editorial page when present. */
 	/** Also write each editorial diagram in the skill's dark skin (`diagram-N.dark.svg` and `.dark.html`), and embed both with `<picture>`. */
 	dark: boolean;
+	/** Where the diagram-design skill is installed. Its self_check.py and verify-geometry.py gate every editorial page when present. */
 	designSkillDir: string;
+}
+
+export interface ReportSettings {
+	/** Write `report.html`, the offline page, at finalize. */
+	html: boolean;
+	/** Look at the page in headless Chrome (overflow, broken images, script errors) and print `report.pdf`. A missing browser only warns. */
+	check: boolean;
+	/** Chrome or Chromium binary; empty searches CHROME_PATH and the usual install locations. */
+	chrome: string;
 }
 
 export interface BrowserSettings {
@@ -164,6 +173,7 @@ export interface ResearchSettings {
 	docling: DoclingSettings;
 	browser: BrowserSettings;
 	diagrams: DiagramSettings;
+	report: ReportSettings;
 	workers: WorkerSettings;
 	uocr: UocrSettings;
 	context: ContextSettings;
@@ -194,6 +204,7 @@ export const DEFAULT_SETTINGS: ResearchSettings = {
 	workers: { enabled: true, concurrency: 2, timeoutMs: 600_000 },
 	browser: { enabled: false, python: "python3", timeoutMs: 45_000 },
 	diagrams: { render: true, mmdc: "mmdc", timeoutMs: 60_000, style: "editorial", dark: true, designSkillDir: join(homedir(), ".claude", "skills", "diagram-design") },
+	report: { html: true, check: true, chrome: "" },
 	docling: { enabled: false, command: "docling", device: "cpu", vlmModel: "", ocr: true, timeoutMs: 300_000 },
 	local: { enabled: true, minWords: 80, minCharsPerPage: 200, pdftotext: "pdftotext", maxPages: 200 },
 	uocr: {
@@ -304,6 +315,7 @@ export async function loadSettings(options: LoadSettingsOptions = {}): Promise<R
 	const doclingRaw = object(raw.docling, "docling");
 	const browserRaw = object(raw.browser, "browser");
 	const diagramsRaw = object(raw.diagrams, "diagrams");
+	const reportRaw = object(raw.report, "report");
 	const workersRaw = object(raw.workers, "workers");
 	const uocrRaw = object(raw.unlimited_ocr, "unlimited_ocr");
 	const contextRaw = object(raw.context, "context");
@@ -381,6 +393,11 @@ export async function loadSettings(options: LoadSettingsOptions = {}): Promise<R
 			})(),
 			dark: bool(diagramsRaw.dark, DEFAULT_SETTINGS.diagrams.dark, "diagrams.dark"),
 			designSkillDir: text(diagramsRaw.design_skill_dir, DEFAULT_SETTINGS.diagrams.designSkillDir, "diagrams.design_skill_dir"),
+		},
+		report: {
+			html: bool(reportRaw.html, DEFAULT_SETTINGS.report.html, "report.html"),
+			check: bool(reportRaw.check, DEFAULT_SETTINGS.report.check, "report.check"),
+			chrome: text(reportRaw.chrome, DEFAULT_SETTINGS.report.chrome, "report.chrome"),
 		},
 		browser: {
 			enabled: bool(env.BROWSER_RENDER === "on" ? true : browserRaw.enabled, DEFAULT_SETTINGS.browser.enabled, "browser.enabled"),
