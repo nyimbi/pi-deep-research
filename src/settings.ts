@@ -52,6 +52,12 @@ export interface EmbeddingSettings {
 	queryPrefix: string;
 }
 
+export interface LlmSettings {
+	/** Local Ollama model for narrow verification jobs. Empty disables every model-backed check. */
+	model: string;
+	timeoutMs: number;
+}
+
 export interface UocrSettings {
 	/** Base URL of the SGLang server; empty disables the provider. */
 	baseUrl: string;
@@ -97,6 +103,7 @@ export interface ResearchSettings {
 	searxng: SearxngSettings;
 	ollama: OllamaSettings;
 	embeddings: EmbeddingSettings;
+	llm: LlmSettings;
 	uocr: UocrSettings;
 	context: ContextSettings;
 	archiveRoot: string;
@@ -122,6 +129,7 @@ export const DEFAULT_SETTINGS: ResearchSettings = {
 	searxng: { baseUrl: "", fallbackUrls: [], language: "en", categories: "general", safeSearch: 0, engines: [] },
 	ollama: { enabled: true, host: "127.0.0.1", port: "11434" },
 	embeddings: { enabled: true, model: "embeddinggemma", queryPrefix: "" },
+	llm: { model: "", timeoutMs: 120_000 },
 	uocr: {
 		baseUrl: "",
 		model: "Unlimited-OCR-2",
@@ -222,6 +230,7 @@ export async function loadSettings(options: LoadSettingsOptions = {}): Promise<R
 	const searxngRaw = object(raw.searxng, "searxng");
 	const ollamaRaw = object(raw.ollama, "ollama");
 	const embeddingsRaw = object(raw.embeddings, "embeddings");
+	const llmRaw = object(raw.llm, "llm");
 	const uocrRaw = object(raw.unlimited_ocr, "unlimited_ocr");
 	const contextRaw = object(raw.context, "context");
 	const safetyRaw = object(raw.safety, "safety");
@@ -277,6 +286,10 @@ export async function loadSettings(options: LoadSettingsOptions = {}): Promise<R
 			enabled: bool(env.EMBEDDINGS === "off" ? false : embeddingsRaw.enabled, DEFAULT_SETTINGS.embeddings.enabled, "embeddings.enabled"),
 			model: env.EMBEDDINGS_MODEL?.trim() || text(embeddingsRaw.model, DEFAULT_SETTINGS.embeddings.model, "embeddings.model"),
 			queryPrefix: text(embeddingsRaw.query_prefix, DEFAULT_SETTINGS.embeddings.queryPrefix, "embeddings.query_prefix"),
+		},
+		llm: {
+			model: env.LLM_MODEL?.trim() || text(llmRaw.model, DEFAULT_SETTINGS.llm.model, "llm.model"),
+			timeoutMs: number(llmRaw.timeout_ms, DEFAULT_SETTINGS.llm.timeoutMs, "llm.timeout_ms"),
 		},
 		uocr: {
 			baseUrl: (env.UOCR_BASE_URL ?? text(uocrRaw.base_url, DEFAULT_SETTINGS.uocr.baseUrl, "unlimited_ocr.base_url")).trim().replace(/\/+$/, ""),

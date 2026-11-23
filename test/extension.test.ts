@@ -7,6 +7,7 @@ import { after, before, describe, it } from "node:test";
 
 /** Drives the real extension.ts through a fake host with a real local HTTP server. */
 let server: Server;
+let ollama: Server;
 let base = "";
 let home = "";
 const hits: string[] = [];
@@ -23,17 +24,34 @@ before(async () => {
 			return;
 		}
 		res.writeHead(200, { "content-type": "text/html" });
-		res.end(`<html><title>T</title><body><p>hello ${req.url}</p></body></html>`);
+		res.end(`<html><title>T</title><body><p>hello ${req.url} and the connector times out after 30 seconds.</p></body></html>`);
 	});
 	await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
 	const port = (server.address() as { port: number }).port;
 	base = `http://127.0.0.1:${port}`;
+	ollama = createServer((req, res) => {
+		let body = "";
+		req.on("data", (c) => (body += c));
+		req.on("end", () => {
+			const claims = [
+				{ claim: "Timeout is 30 seconds.", quote: "the connector times out after 30 seconds.", numbers: ["30"] },
+				{ claim: "Invented.", quote: "the connector never times out at all ever.", numbers: [] },
+			];
+			res.writeHead(200, { "content-type": "application/json" });
+			res.end(JSON.stringify({ message: { content: JSON.stringify({ claims }) } }));
+		});
+	});
+	await new Promise<void>((resolve) => ollama.listen(0, "127.0.0.1", resolve));
+	const ollamaPort = (ollama.address() as { port: number }).port;
 	await mkdir(join(home, ".pi/agent/pi-deep-research"), { recursive: true });
 	await writeFile(
 		join(home, ".pi/agent/pi-deep-research/config.json"),
-		JSON.stringify({ providers: ["jina"], cache: { enabled: false }, safety: { allow_private_hosts: true, allowed_ports: [port] }, archive: { root: join(home, "arch") } }),
+		JSON.stringify({ providers: ["jina"], ollama: { enabled: false, host: "127.0.0.1", port: String(ollamaPort) }, llm: { model: "test-model" }, cache: { enabled: false }, safety: { allow_private_hosts: true, allowed_ports: [port] }, archive: { root: join(home, "arch") } }),
 	);
 	process.env.HOME = home;
+	delete process.env.OLLAMA_HOST;
+	delete process.env.OLLAMA_PORT;
+	delete process.env.LLM_MODEL;
 	process.env.JINA_API_KEY = "off";
 	const { default: extension } = await import("../extension.ts");
 	await extension({
@@ -45,6 +63,7 @@ before(async () => {
 });
 after(async () => {
 	server.close();
+	ollama.close();
 	await rm(home, { recursive: true, force: true });
 });
 
@@ -70,5 +89,14 @@ describe("extension URL provenance", () => {
 		assert.equal(before, 1);
 		assert.match(await run("web_extract", { url: `${base}/pay` }), /payment_required/);
 		assert.equal(hits.filter((h) => h === "/pay").length, before);
+	});
+
+	it("source_claims returns only claims whose quote is on the page", async () => {
+		handlers.input({ type: "input", text: `read ${base}/claims`, source: "interactive" });
+		await run("web_extract", { url: `${base}/claims` });
+		const text = await run("source_claims", { url: `${base}/claims` });
+		assert.match(text, /Timeout is 30 seconds/);
+		assert.doesNotMatch(text, /Invented/);
+		assert.match(text, /1 item\(s\) dropped/);
 	});
 });

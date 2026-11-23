@@ -32,6 +32,8 @@ import {
 } from "./src/native/index.ts";
 import { chunkText, headWords } from "./src/chunks.ts";
 import { createOllamaEmbedder, type Embedder } from "./src/embed.ts";
+import { createOllamaLlm, type LlmClient } from "./src/llm.ts";
+import { quarantinedExtract } from "./src/quarantine.ts";
 import { rankPassages } from "./src/retrieval.ts";
 import { UrlProvenance } from "./src/provenance.ts";
 import { RawStore } from "./src/raw-store.ts";
@@ -268,6 +270,50 @@ export default async function (pi: ExtensionAPI) {
 		}
 		return embedderInstance;
 	};
+
+	let llmInstance: LlmClient | null | undefined;
+	const llm = (): LlmClient | null => {
+		if (llmInstance === undefined) {
+			llmInstance = settings.llm.model
+				? createOllamaLlm({
+						baseUrl: `http://${settings.ollama.host}:${settings.ollama.port}`,
+						model: settings.llm.model,
+						timeoutMs: settings.llm.timeoutMs,
+						onCall: (_purpose, ok) => ledger.recordLlmCall(ok),
+					})
+				: null;
+		}
+		return llmInstance;
+	};
+
+	// ── Tool: source_claims ──
+	pi.registerTool({
+		name: "source_claims",
+		label: "Source Claims",
+		description: [
+			"List verified factual claims from a page already extracted with web_extract.",
+			"A local model reads the page with no tools; every returned quote is checked as an exact substring of the archived text,",
+			"and instruction-like text is dropped. Needs `llm.model` configured. Treat the output as leads to confirm, not as final evidence.",
+		].join(" "),
+		parameters: Type.Object({ url: Type.String({ description: "A URL already extracted in this research run" }) }),
+		async execute(_toolCallId, params) {
+			const source = ledger.source(params.url);
+			if (!source?.extracted) return { content: [{ type: "text", text: `No extracted text for ${params.url}. Call web_extract on it first.` }], details: undefined };
+			const client = llm();
+			if (!client) return { content: [{ type: "text", text: "source_claims is off: set llm.model (or LLM_MODEL) to a local Ollama model." }], details: undefined };
+			try {
+				const result = await quarantinedExtract(client, source.url, source.extracted.content);
+				const lines = result.claims.map((c, i) => `${i + 1}. ${c.claim}\n   quote: "${c.quote}"`);
+				const note = result.dropped.length ? `\n\n${result.dropped.length} item(s) dropped by verification (${[...new Set(result.dropped.map((d) => d.reason))].join(", ")}).` : "";
+				return {
+					content: [{ type: "text", text: `${lines.join("\n") || "No verifiable claims."}${note}\nSource: ${source.url}` }],
+					details: { claims: result.claims.length, dropped: result.dropped.length } as Record<string, unknown>,
+				};
+			} catch (error) {
+				return { content: [{ type: "text", text: `source_claims failed: ${error instanceof Error ? error.message : String(error)}` }], details: undefined };
+			}
+		},
+	});
 
 	// ── Tool: source_read ──
 	pi.registerTool({

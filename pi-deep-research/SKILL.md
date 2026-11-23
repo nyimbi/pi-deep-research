@@ -227,6 +227,9 @@ The search-checkpoint loop works like this:
 6. Use a line pin when the extracted text exposes line numbers: `[Source](url) (line 42)`. Otherwise quote a short span and name the section. Never invent a line number.
 7. The report is a RESEARCH REPORT ONLY — do not implement findings, write code, or make system changes.
 
+When `llm.model` is configured, `source_claims` lists quote-verified claims from an extracted
+page. Use it to find leads in a long page; confirm each with `source_read` before citing.
+
 ### Phase 5 — Finalize the Evidence Package (MANDATORY)
 
 **Do not claim the research is complete before this succeeds.**

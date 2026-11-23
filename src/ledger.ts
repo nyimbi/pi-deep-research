@@ -68,6 +68,8 @@ export interface LedgerStats {
 	/** known / (known + unknown) citations in the report; null without a report or citations. */
 	citationReturnRate: number | null;
 	urlStatuses: Record<string, number>;
+	llmCalls: number;
+	llmFailures: number;
 	providers: Record<string, number>;
 	tiers: Record<string, number>;
 	domains: Record<string, number>;
@@ -87,6 +89,8 @@ export class SourceLedger {
 	private searches = 0;
 	private extracts = 0;
 	private cacheHits = 0;
+	private llmCalls = 0;
+	private llmFailures = 0;
 	private readonly urlStatuses = new Map<string, UrlStatusRecord>();
 	private readonly providerCalls: Record<string, number> = {};
 	private readonly queryLog: QueryLogEntry[] = [];
@@ -171,6 +175,11 @@ export class SourceLedger {
 		});
 	}
 
+	recordLlmCall(ok: boolean): void {
+		this.llmCalls += 1;
+		if (!ok) this.llmFailures += 1;
+	}
+
 	recordUrlStatus(url: string, status: UrlStatus, detail = ""): void {
 		this.urlStatuses.set(normalizeUrl(url), { status, detail: detail.slice(0, 200), at: now() });
 	}
@@ -245,6 +254,8 @@ export class SourceLedger {
 			cacheHits: this.cacheHits,
 			citationReturnRate: report && cited + unknowns > 0 ? cited / (cited + unknowns) : null,
 			urlStatuses: statuses,
+			llmCalls: this.llmCalls,
+			llmFailures: this.llmFailures,
 			providers: { ...this.providerCalls },
 			tiers,
 			domains,
