@@ -7,6 +7,7 @@ description: "Changelog for pi-deep-research skill"
 ## [Unreleased]
 
 ### Added
+- Robots etiquette for fetches the tool chose (user-typed URLs exempt) and a Wayback fallback on 403, 404, 410 and 5xx that records the snapshot timestamp. `safety.respect_robots` and `safety.wayback`.
 - Local extraction ahead of network providers: in-process HTML to Markdown (drops hidden text and boilerplate), PDF text layer with page markers, scanned PDFs and client-rendered pages decline to the next provider. Fixture eval in `scripts/html-eval.ts`.
 - `research_checkpoint` takes `slug`, reports rubric progress and holds PROCEED while a mandatory item is open.
 - `research_notes` tool: durable notes with evidence IDs, a rubric and critic revisions; a run resumes after a context reset. `research_finalize` requires an `[F#]` ID on every Findings line when notes exist.

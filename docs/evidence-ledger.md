@@ -93,3 +93,20 @@ to 1.00 against 0.78 to 0.86. The fixture is small and self-authored, so read it
 regression test, not a benchmark. Settings: `local_extract.{enabled, min_words,
 min_chars_per_page, pdftotext, max_pages}`; `LOCAL_EXTRACT=off` disables it.
 
+## Robots and the Wayback fallback
+
+**Robots.** A URL the user typed is fetched as asked. Any other fetch (a search result or a page
+link) first reads the origin's `robots.txt` (`src/robots.ts`, RFC 9309: the group naming
+`PiDeepResearch` beats `*`, longest rule wins, Allow wins a tie, `*` and `$` supported). A
+disallowed page is skipped and recorded as `robots_blocked`, which is terminal for the session.
+A missing `robots.txt` allows; a 5xx or an unreachable-by-status file denies, as the RFC says;
+a network error allows, so one flaky host cannot block a page. Set `safety.respect_robots`
+to `false` to turn this off.
+
+**Wayback.** When a fetch ends in HTTP 403, 404, 410 or 5xx, `web_extract` asks the archive for the
+closest public snapshot (`src/wayback.ts`) and extracts that. The text is stored under the
+original URL, which the report cites, and the ledger status is `archived` with the snapshot
+timestamp. 401 and 402 are never routed around. The snapshot URL must be on `web.archive.org`.
+Set `safety.wayback` to `false` to turn this off. CDX enumeration and date-pinned lookups
+are not built.
+

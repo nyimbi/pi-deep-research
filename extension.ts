@@ -38,6 +38,8 @@ import { checkEntailment } from "./src/entailment.ts";
 import { quarantinedExtract } from "./src/quarantine.ts";
 import { rankPassages } from "./src/retrieval.ts";
 import { UrlProvenance } from "./src/provenance.ts";
+import { RobotsChecker } from "./src/robots.ts";
+import { findSnapshot, wayBackEligible } from "./src/wayback.ts";
 import { RawStore } from "./src/raw-store.ts";
 import { addFinding, loadNotes, newNotes, renderNotes, saveNotes } from "./src/notes.ts";
 import { resolveArchiveRoot, writeResearchPackage } from "./src/research-package.ts";
@@ -75,6 +77,7 @@ export default async function (pi: ExtensionAPI) {
 	const breaker = new ProviderBreaker(settings.breaker);
 	let ledger = new SourceLedger();
 	const provenance = new UrlProvenance();
+	const robots = new RobotsChecker(retryFetch);
 	pi.on("input", (event) => {
 		if (event.source !== "extension") {
 			provenance.noteUserText(event.text);
@@ -227,15 +230,38 @@ export default async function (pi: ExtensionAPI) {
 					failures.push(`${url}: not fetched again (${blocked})`);
 					continue;
 				}
+				if (settings.safety.respectRobots && verdict.via !== "user") {
+					const robotsVerdict = await robots.check(url);
+					if (!robotsVerdict.allowed) {
+						ledger.recordUrlStatus(url, "robots_blocked", robotsVerdict.reason);
+						failures.push(`${url}: skipped, ${robotsVerdict.reason}`);
+						continue;
+					}
+				}
 				try {
-					const result = await chainExtract([localExtract, ...chainFor("web")], url, {
+					const extractOptions = {
 						timeoutMs: settings.timeoutMs,
 						cache,
 						cacheTtlMs: settings.cache.extractTtlMs,
 						breaker,
 						ledger,
 						safety: settings.safety,
-					});
+					};
+					let result;
+					let archiveNote = "";
+					try {
+						result = await chainExtract([localExtract, ...chainFor("web")], url, extractOptions);
+					} catch (error) {
+						if (!settings.safety.wayback || !(error instanceof HttpStatusError) || !wayBackEligible(error.status)) throw error;
+						const snapshot = await findSnapshot(url, { fetchImpl: retryFetch }).catch(() => null);
+						if (!snapshot) throw error;
+						const archived = await chainExtract([localExtract, ...chainFor("web")], snapshot.url, extractOptions);
+						// Record the text under the URL the report will cite, and mark how it was obtained.
+						ledger.recordExtract(url, archived);
+						ledger.recordUrlStatus(url, "archived", `Wayback snapshot ${snapshot.timestamp} ${snapshot.url}`);
+						result = archived;
+						archiveNote = ` Live page returned HTTP ${error.status}; text is from the Wayback snapshot of ${snapshot.timestamp}.`;
+					}
 					provenance.notePageText(result.content);
 					let pageNote = "";
 					try {
@@ -250,7 +276,7 @@ export default async function (pi: ExtensionAPI) {
 					const more = head.truncated
 						? ` Showing the first ${settings.context.inlineWords} words; call source_read with this url and a query for the rest.`
 						: "";
-					sections.push(`Extracted ${url} via ${result.provider} (${result.wordCount} words). ${pageNote}${more}\n\n${frameContent(head.text, url, result.provider)}`);
+					sections.push(`Extracted ${url} via ${result.provider} (${result.wordCount} words).${archiveNote} ${pageNote}${more}\n\n${frameContent(head.text, url, result.provider)}`);
 				} catch (error) {
 					failures.push(`${url}: ${error instanceof Error ? error.message : String(error)}`);
 				}

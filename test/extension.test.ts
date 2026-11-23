@@ -23,6 +23,16 @@ before(async () => {
 			res.end("pay up");
 			return;
 		}
+		if (req.url === "/robots.txt") {
+			res.writeHead(200, { "content-type": "text/plain" });
+			res.end("User-agent: *\nDisallow: /private/\nAllow: /private/open\n");
+			return;
+		}
+		if (req.url === "/hub") {
+			res.writeHead(200, { "content-type": "text/html" });
+			res.end(`<html><title>Hub</title><body><main><p>${"filler ".repeat(100)}</p><p><a href="/private/a">a</a> <a href="/private/open">o</a> <a href="/public/a">p</a></p></main></body></html>`);
+			return;
+		}
 		res.writeHead(200, { "content-type": "text/html" });
 		res.end(`<html><title>T</title><body><p>hello ${req.url} and the connector times out after 30 seconds.</p></body></html>`);
 	});
@@ -89,6 +99,17 @@ describe("extension URL provenance", () => {
 		assert.equal(before, 1);
 		assert.match(await run("web_extract", { url: `${base}/pay` }), /payment_required/);
 		assert.equal(hits.filter((h) => h === "/pay").length, before);
+	});
+
+	it("skips a robots-disallowed page the tool chose, but fetches the same path when the user typed it", async () => {
+		handlers.input({ type: "input", text: `read ${base}/hub`, source: "interactive" });
+		await run("web_extract", { url: `${base}/hub` });
+		assert.match(await run("web_extract", { url: `${base}/private/a` }), /robots\.txt disallows \/private\//);
+		assert.equal(hits.filter((h) => h === "/private/a").length, 0);
+		assert.ok((await run("web_extract", { url: `${base}/private/open` })).includes(`Extracted ${base}/private/open via`));
+		assert.ok((await run("web_extract", { url: `${base}/public/a` })).includes(`Extracted ${base}/public/a via`));
+		handlers.input({ type: "input", text: `and read ${base}/private/typed`, source: "interactive" });
+		assert.ok((await run("web_extract", { url: `${base}/private/typed` })).includes(`Extracted ${base}/private/typed via`));
 	});
 
 	it("source_claims returns only claims whose quote is on the page", async () => {

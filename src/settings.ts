@@ -95,6 +95,10 @@ export interface SafetySettings {
 	maxPageLinkFetches: number;
 	/** Escape hatch: fetch URLs with no provenance. Off by default. */
 	allowUnlistedUrls: boolean;
+	/** Skip pages that robots.txt disallows, for fetches the tool chose. User-typed URLs are exempt. */
+	respectRobots: boolean;
+	/** After 403, 404, 410 or 5xx, try a public Wayback snapshot. */
+	wayback: boolean;
 }
 
 export interface BudgetSettings {
@@ -167,6 +171,8 @@ export const DEFAULT_SETTINGS: ResearchSettings = {
 		allowedPorts: [80, 443],
 		maxPageLinkFetches: 10,
 		allowUnlistedUrls: false,
+		respectRobots: true,
+		wayback: true,
 	},
 	budget: { maxSearches: 80, maxExtracts: 60 },
 };
@@ -339,6 +345,8 @@ export async function loadSettings(options: LoadSettingsOptions = {}): Promise<R
 			allowedPorts: numbers(safetyRaw.allowed_ports, DEFAULT_SETTINGS.safety.allowedPorts, "safety.allowed_ports"),
 			maxPageLinkFetches: number(safetyRaw.max_page_link_fetches, DEFAULT_SETTINGS.safety.maxPageLinkFetches, "safety.max_page_link_fetches"),
 			allowUnlistedUrls: bool(safetyRaw.allow_unlisted_urls, DEFAULT_SETTINGS.safety.allowUnlistedUrls, "safety.allow_unlisted_urls"),
+			respectRobots: bool(safetyRaw.respect_robots, DEFAULT_SETTINGS.safety.respectRobots, "safety.respect_robots"),
+			wayback: bool(safetyRaw.wayback, DEFAULT_SETTINGS.safety.wayback, "safety.wayback"),
 		},
 		budget: {
 			maxSearches: number(budgetRaw.max_searches, DEFAULT_SETTINGS.budget.maxSearches, "budget.max_searches"),
