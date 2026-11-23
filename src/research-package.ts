@@ -9,6 +9,7 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, isAbsolute, join, resolve } from "node:path";
 import type { LedgerStats, SourceLedger } from "./ledger.ts";
 import type { EntailmentReport } from "./entailment.ts";
+import { checkReportAgainstNotes, loadNotes } from "./notes.ts";
 import { CONFIDENCE_CAP, gradeFindings, type FindingGrade, type Grade } from "./grade.ts";
 import { checkClaims, describeClaimIssues } from "./claim-check.ts";
 import type { DocsQaRunner } from "./docs-qa.ts";
@@ -238,6 +239,13 @@ export async function writeResearchPackage(options: FinalizeOptions): Promise<Fi
 	report = ensured.report;
 	warnings.push(...ensured.warnings);
 
+	const notes = await loadNotes(join(root, slug));
+	if (notes) {
+		const noteIssues = checkReportAgainstNotes(report, notes, options.depth);
+		if (options.strict !== false) errors.push(...noteIssues.errors);
+		else warnings.push(...noteIssues.errors);
+		warnings.push(...noteIssues.warnings);
+	}
 	const graded = gradeFindings(report, options.ledger);
 	if (graded.overall && options.confidence !== undefined && options.confidence > CONFIDENCE_CAP[graded.overall]) {
 		warnings.push(`declared confidence ${options.confidence} exceeds the ${CONFIDENCE_CAP[graded.overall]} cap for the weakest finding (${graded.overall}); set it from the evidence grade`);
@@ -364,6 +372,7 @@ export async function writeResearchPackage(options: FinalizeOptions): Promise<Fi
 		stats,
 		evidence_grade: { overall: graded.overall, findings: graded.findings },
 		entailment,
+		notes: notes ? { findings: notes.findings.length, rubric_satisfied: notes.rubric.filter((r) => r.satisfied).length, rubric_total: notes.rubric.length, revisions: notes.revisions } : null,
 		failures: options.ledger.failureLog(),
 	};
 	await writeFile(join(packagePath, "research-package.json"), `${JSON.stringify(metadata, null, 2)}\n`, "utf8");

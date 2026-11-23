@@ -62,3 +62,13 @@ again in the session, and the retry layer never retries a 402. `ledger.json` car
 statuses, and the package stats report `citationReturnRate`, the share of cited URLs that a
 tool returned (1 means none were invented).
 
+## Notes, evidence IDs and resume
+
+`research_notes` keeps `notes.json` and `notes.md` beside the package, plus a ledger snapshot,
+so a run survives a context reset: `op: read` restores the notes and, when the in-memory ledger
+is empty, the ledger too. A finding can only cite URLs the ledger already holds, and returns an
+ID such as `F3`. When notes exist, `research_finalize` fails strict runs on a Findings line with
+no ID or an unknown ID, and on an unsatisfied mandatory rubric item. It warns about an optional
+rubric item, a sub-question with no finding in the report, and a run with no recorded critic
+revision. The rubric is written by the agent from the user's request; nothing expands it.
+

@@ -195,6 +195,33 @@ theme that connects all the competitive products examined in this report.
 
 ---
 
+## Sections the finalizer requires
+
+`research_finalize` looks for these exact `##` headings, so the display titles above map to
+them: "Key Findings" is `## Findings`, "Uncertainties & Gaps" is `## Gaps`, and
+"Contradictions & Debates" is `## Contradictions`.
+
+```markdown
+## Question
+## Findings
+- Latency fell 12.5% after the change [F3] ([source](https://example.com/a))
+## Decisions
+## Rejected options
+## Confidence
+## Gaps
+- One real limit, unanswered question or weak source. "None" fails.
+## Scope
+- In scope: what the report covers.
+- Out of scope: what it deliberately leaves out.
+## Contradictions
+- Source A says 5 ([a](https://a.example/x)); source B says 6 ([b](https://b.example/y)).
+- Or: None found after checking N sources.
+## Sources
+```
+
+Each Findings line carries an `[F#]` evidence ID from `research_notes` when notes exist, and
+each figure or quote must appear in the cited source.
+
 ## Section Requirements by Depth
 
 | Section | Quick | Standard | Deep | Exhaustive |

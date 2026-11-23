@@ -268,6 +268,20 @@ export class SourceLedger {
 		return null;
 	}
 
+	/** Rebuild a ledger from `persist()` output so a run can resume after a context reset. */
+	static restore(data: unknown): SourceLedger {
+		const d = data as { type?: string; sources?: LedgerSource[]; queries?: QueryLogEntry[]; failures?: LedgerFailure[]; urlStatuses?: Record<string, UrlStatusRecord>; stats?: { searches?: number; extracts?: number } };
+		if (!d || d.type !== "pi-deep-research-ledger-v1" || !Array.isArray(d.sources)) throw new Error("not a ledger snapshot");
+		const ledger = new SourceLedger();
+		for (const source of d.sources) if (source?.normalizedUrl) ledger.sources.set(source.normalizedUrl, source);
+		ledger.queryLog.push(...(d.queries ?? []));
+		ledger.failures.push(...(d.failures ?? []));
+		for (const [url, record] of Object.entries(d.urlStatuses ?? {})) ledger.urlStatuses.set(url, record);
+		ledger.searches = d.stats?.searches ?? 0;
+		ledger.extracts = d.stats?.extracts ?? 0;
+		return ledger;
+	}
+
 	persist(): Record<string, unknown> {
 		return {
 			type: "pi-deep-research-ledger-v1",

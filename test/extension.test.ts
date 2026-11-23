@@ -99,4 +99,21 @@ describe("extension URL provenance", () => {
 		assert.doesNotMatch(text, /Invented/);
 		assert.match(text, /1 item\(s\) dropped/);
 	});
+
+	it("research_notes resumes after a context reset: a fresh instance restores notes and the ledger", async () => {
+		const ctx = { cwd: home };
+		const notes = (t: Record<string, any>, p: Record<string, unknown>) => t.research_notes.execute("id", p, undefined, undefined, ctx).then((r: any) => r.content[0].text as string);
+		handlers.input({ type: "input", text: `read ${base}/resume`, source: "interactive" });
+		await run("web_extract", { url: `${base}/resume` });
+		assert.match(await notes(tools, { slug: "resume-run", op: "plan", question: "q", sub_questions: ["what?"] }), /Q1 what\?/);
+		assert.match(await notes(tools, { slug: "resume-run", op: "finding", sub_question: "Q1", text: "It times out.", urls: [`${base}/resume`] }), /Recorded as \[F1\]/);
+		assert.match(await notes(tools, { slug: "resume-run", op: "finding", sub_question: "Q1", text: "Invented.", urls: ["https://made.up/x"] }), /never returned/);
+		const fresh: Record<string, any> = {};
+		const { default: extension } = await import("../extension.ts");
+		await extension({ registerTool: (t: any) => (fresh[t.name] = t), registerCommand() {}, registerMessageRenderer() {}, on() {} } as any);
+		const resumed = await notes(fresh, { slug: "resume-run", op: "read" });
+		assert.match(resumed, /Restored the evidence ledger \(\d+ sources\)/);
+		assert.match(resumed, /\[F1\] It times out\./);
+		assert.match(await fresh.source_read.execute("id", { url: `${base}/resume`, query: "connector" }).then((r: any) => r.content[0].text), /times out after 30 seconds/);
+	});
 });

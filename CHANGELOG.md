@@ -7,6 +7,8 @@ description: "Changelog for pi-deep-research skill"
 ## [Unreleased]
 
 ### Added
+- `research_notes` tool: durable notes with evidence IDs, a rubric and critic revisions; a run resumes after a context reset. `research_finalize` requires an `[F#]` ID on every Findings line when notes exist.
+- SKILL.md: effort scaling, rubric, consolidate and critic phases. Report template lists the sections the finalizer requires.
 - Opt-in entailment check in `research_finalize` (local model), with `npm run entailment-eval` for agreement against a labelled fixture.
 - Per-finding evidence grade from source tier and independent domains; finalize warns when declared confidence exceeds the weakest finding's cap.
 - Poisoned-page canary corpus (7 routes) guarding the fetch and quote gates.

@@ -84,13 +84,24 @@ Before searching, spend 30 seconds understanding the request:
    least three), and what a retracted or preprint record means for the answer.
    Read `../references/claude-research-alignment.md` first.
 
+   **Scale effort to the question.** A single fact needs one to three tool calls and no
+   sub-agents. A comparison needs a search round per option. A broad survey needs the full
+   plan. Starting 50 workers for a trivial question is the failure this table prevents.
+
 3. **Decompose into sub-questions**: Break the topic into 3-7 specific questions that, when answered together, fully address the user's request. Design sub-questions so they **build on each other** — later questions should deepen or cross-reference earlier ones.
 
 4. **Plan the search strategy**: For each sub-question, draft 1-2 search queries. Prefer specific queries over broad ones. Include domain-specific terms.
 
-5. **Present the plan to the user and STOP**. Display:
+5. **Write the rubric**: list the binary requirements a complete answer must meet, taken
+   from the user's own words (explicit asks, named constraints, the output they expect). Mark
+   each `mandatory` or `optional`. Do not pad the list with items you invented; an expanded
+   rubric measurably misaligns with what was asked. Create the notes with `research_notes`
+   (`op: plan`, with `sub_questions` and `rubric`) so the plan survives a context reset.
+
+6. **Present the plan to the user and STOP**. Display:
    - Research depth & type
    - Sub-questions list (showing how they connect)
+   - The rubric items
    - Planned search queries
    - Estimated search count and time budget
 
@@ -214,11 +225,22 @@ The search-checkpoint loop works like this:
 - A sub-question leads to a bigger question → split it or add a new sub-question
 - Dead end on a query → rephrase with different terminology, try different domains
 
+### Phase 3b — Consolidate (before drafting)
+
+Record what you learned in the notes, then draft from the notes alone, not from the chat
+history. For each finding call `research_notes` with `op: finding`, the sub-question id
+(`Q1`), a one-sentence statement and the source URLs. It returns an evidence ID such as
+`F3`. Record unresolved questions with `op: gap` and mark each rubric item with
+`op: rubric_check`. If a sub-question has no finding, run another search round for it
+before drafting. After a context reset, call `op: read` to restore the notes and the
+evidence ledger.
+
 ### Phase 4 — Synthesize & Report
 
 **Only enter this phase after receiving a 🟢 PROCEED verdict from `research_checkpoint`.**
 
 **The report is a Markdown file.** Follow the structure in `../references/report-template.md` exactly:
+0. Write the report in sequence, one section at a time, from the notes. Put the evidence ID in each Findings line, for example `- Latency fell 12.5% [F3] ([source](https://...))`. When notes exist, `research_finalize` rejects a Findings line with no ID.
 1. Generate a complete `.md` file with ALL required sections (see the depth table in report-template.md)
 2. Save it as `report.md` in the working directory (or `docs/research/<slug>/report.md`)
 3. Cite only URLs the tools returned. Every citation in the report must resolve to a source in the ledger, and every load-bearing source must have been read with `web_extract`.
@@ -226,6 +248,10 @@ The search-checkpoint loop works like this:
 5. Label inference. "The evidence shows X" and "I infer X" are different claims.
 6. Use a line pin when the extracted text exposes line numbers: `[Source](url) (line 42)`. Otherwise quote a short span and name the section. Never invent a line number.
 7. The report is a RESEARCH REPORT ONLY — do not implement findings, write code, or make system changes.
+
+**Critic pass.** Before finalizing, re-read the draft once against the rubric and the claim
+rules (numbers and quotes must match the cited source). Fix what fails, then record it with
+`research_notes` `op: revision`. Finalize warns when no revision was recorded.
 
 When `llm.model` is configured, `source_claims` lists quote-verified claims from an extracted
 page. Use it to find leads in a long page; confirm each with `source_read` before citing.
