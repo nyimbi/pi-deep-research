@@ -1,0 +1,114 @@
+{
+ "pages": [
+  {
+   "id": "queue",
+   "text": "# Job queue design\n\nThe queue stores each job as a row with a lease expiry. Workers claim a job by setting the lease to now plus 30 seconds, and a heartbeat extends it every 10 seconds.\n\nIf a worker dies, its lease lapses and another worker can claim the job again. This gives at-least-once delivery, so handlers must be idempotent.\n\nRetries use exponential backoff starting at 2 seconds and doubling up to a ceiling of 5 minutes. After 8 failed attempts the job moves to the dead letter table.\n\nOperators can replay dead letters with the requeue command. Replayed jobs keep their original idempotency key so duplicates are dropped.\n\nMetrics are exported as Prometheus gauges: queue depth, oldest job age, and lease expiries per minute. An alert fires when the oldest job age exceeds 10 minutes.\n\nThe schema migration adds a partial index on status so that claiming scans only runnable rows, which cut claim latency from 40 ms to 3 ms in testing."
+  },
+  {
+   "id": "license",
+   "text": "# Licensing summary\n\nThe core library is released under the Apache 2.0 license, which permits commercial use, modification and distribution, and includes an explicit patent grant.\n\nThe command line tool is dual licensed. Individuals and companies under ten employees may use it under the MIT license. Larger organisations need a paid commercial agreement.\n\nContributions require signing a contributor agreement that assigns copyright to the foundation. Pull requests without it are not merged.\n\nTrademarks are separate from code licensing. The logo and name may not be used to imply endorsement without written permission.\n\nDocumentation is published under Creative Commons Attribution 4.0, so it can be copied with credit.\n\nSecurity reports go to a private address and receive an acknowledgement within 48 hours. Fixes are disclosed after 90 days or on release, whichever is first."
+  }
+ ],
+ "questions": [
+  {
+   "page": "queue",
+   "query": "how long is a worker lease and how often is it renewed",
+   "gold": "claim a job by setting the lease"
+  },
+  {
+   "page": "queue",
+   "query": "what happens when a worker crashes mid-job",
+   "gold": "its lease lapses"
+  },
+  {
+   "page": "queue",
+   "query": "how many times is a failing job retried before giving up",
+   "gold": "After 8 failed attempts"
+  },
+  {
+   "page": "queue",
+   "query": "how do I reprocess jobs that ended up in the dead letter table",
+   "gold": "replay dead letters"
+  },
+  {
+   "page": "queue",
+   "query": "what made claiming jobs faster",
+   "gold": "partial index on status"
+  },
+  {
+   "page": "queue",
+   "query": "when does the alert fire",
+   "gold": "oldest job age exceeds 10 minutes"
+  },
+  {
+   "page": "license",
+   "query": "can a small startup use the CLI for free",
+   "gold": "under ten employees"
+  },
+  {
+   "page": "license",
+   "query": "is there a patent grant",
+   "gold": "explicit patent grant"
+  },
+  {
+   "page": "license",
+   "query": "who owns contributed code",
+   "gold": "assigns copyright to the foundation"
+  },
+  {
+   "page": "license",
+   "query": "how fast are vulnerability reports acknowledged",
+   "gold": "within 48 hours"
+  },
+  {
+   "page": "license",
+   "query": "can I copy the docs",
+   "gold": "Creative Commons Attribution"
+  },
+  {
+   "page": "license",
+   "query": "may I put the project logo on my site",
+   "gold": "may not be used to imply endorsement"
+  },
+  {
+   "page": "queue",
+   "query": "does a task ever run twice",
+   "gold": "at-least-once delivery"
+  },
+  {
+   "page": "queue",
+   "query": "what is the longest wait between attempts",
+   "gold": "ceiling of 5 minutes"
+  },
+  {
+   "page": "queue",
+   "query": "which monitoring system consumes the numbers",
+   "gold": "Prometheus gauges"
+  },
+  {
+   "page": "queue",
+   "query": "how are repeated submissions prevented after a manual rerun",
+   "gold": "original idempotency key"
+  },
+  {
+   "page": "license",
+   "query": "do bigger companies have to pay",
+   "gold": "paid commercial agreement"
+  },
+  {
+   "page": "license",
+   "query": "how long before a flaw is made public",
+   "gold": "disclosed after 90 days"
+  },
+  {
+   "page": "license",
+   "query": "is the brand covered by the same terms as the source",
+   "gold": "Trademarks are separate"
+  },
+  {
+   "page": "license",
+   "query": "what must a first-time committer sign",
+   "gold": "contributor agreement"
+  }
+ ]
+}

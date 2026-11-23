@@ -44,6 +44,14 @@ export interface ContextSettings {
 	chunkWords: number;
 }
 
+export interface EmbeddingSettings {
+	/** Dense retrieval over Ollama; falls back to BM25 when the model is unavailable. */
+	enabled: boolean;
+	model: string;
+	/** Prepended to the query only, for models trained with an instruction. */
+	queryPrefix: string;
+}
+
 export interface UocrSettings {
 	/** Base URL of the SGLang server; empty disables the provider. */
 	baseUrl: string;
@@ -88,6 +96,7 @@ export interface ResearchSettings {
 	breaker: BreakerSettings;
 	searxng: SearxngSettings;
 	ollama: OllamaSettings;
+	embeddings: EmbeddingSettings;
 	uocr: UocrSettings;
 	context: ContextSettings;
 	archiveRoot: string;
@@ -112,6 +121,7 @@ export const DEFAULT_SETTINGS: ResearchSettings = {
 	breaker: { failures: 3, cooldownMs: 60_000 },
 	searxng: { baseUrl: "", fallbackUrls: [], language: "en", categories: "general", safeSearch: 0, engines: [] },
 	ollama: { enabled: true, host: "127.0.0.1", port: "11434" },
+	embeddings: { enabled: true, model: "embeddinggemma", queryPrefix: "" },
 	uocr: {
 		baseUrl: "",
 		model: "Unlimited-OCR-2",
@@ -211,6 +221,7 @@ export async function loadSettings(options: LoadSettingsOptions = {}): Promise<R
 	const breakerRaw = object(raw.breaker, "breaker");
 	const searxngRaw = object(raw.searxng, "searxng");
 	const ollamaRaw = object(raw.ollama, "ollama");
+	const embeddingsRaw = object(raw.embeddings, "embeddings");
 	const uocrRaw = object(raw.unlimited_ocr, "unlimited_ocr");
 	const contextRaw = object(raw.context, "context");
 	const safetyRaw = object(raw.safety, "safety");
@@ -261,6 +272,11 @@ export async function loadSettings(options: LoadSettingsOptions = {}): Promise<R
 			),
 			host: envHost || text(ollamaRaw.host, DEFAULT_SETTINGS.ollama.host, "ollama.host"),
 			port: envPort || text(ollamaRaw.port, DEFAULT_SETTINGS.ollama.port, "ollama.port"),
+		},
+		embeddings: {
+			enabled: bool(env.EMBEDDINGS === "off" ? false : embeddingsRaw.enabled, DEFAULT_SETTINGS.embeddings.enabled, "embeddings.enabled"),
+			model: env.EMBEDDINGS_MODEL?.trim() || text(embeddingsRaw.model, DEFAULT_SETTINGS.embeddings.model, "embeddings.model"),
+			queryPrefix: text(embeddingsRaw.query_prefix, DEFAULT_SETTINGS.embeddings.queryPrefix, "embeddings.query_prefix"),
 		},
 		uocr: {
 			baseUrl: (env.UOCR_BASE_URL ?? text(uocrRaw.base_url, DEFAULT_SETTINGS.uocr.baseUrl, "unlimited_ocr.base_url")).trim().replace(/\/+$/, ""),

@@ -35,7 +35,8 @@
     "release:minor": "node scripts/release.mjs minor",
     "release:major": "node scripts/release.mjs major",
     "typecheck": "tsc --noEmit",
-    "docs-qa": "python3 scripts/docs_qa.py --canary && python3 scripts/docs_qa.py --root . --errors-only docs/research"
+    "docs-qa": "python3 scripts/docs_qa.py --canary && python3 scripts/docs_qa.py --root . --errors-only docs/research",
+    "retrieval-eval": "node scripts/retrieval-eval.ts"
   },
   "pi": {
     "skills": [

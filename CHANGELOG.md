@@ -7,6 +7,7 @@ description: "Changelog for pi-deep-research skill"
 ## [Unreleased]
 
 ### Added
+- Hybrid `source_read`: BM25 plus Ollama embeddings fused with RRF, an on-disk embedding cache, and `npm run retrieval-eval` for hit rate at 1, 3 and 5. See `docs/retrieval.md`.
 - Required `## Scope` and `## Contradictions` sections; `## Gaps` must name a real limit.
 - Typed ledger URL statuses (`payment_required`, `robots_blocked`, `archived`, `duplicate`); the first two are never refetched. Stats report `citationReturnRate`.
 - Deterministic claim checks in `research_finalize`: cited numbers and quotes must appear in the archived source.
