@@ -2,6 +2,7 @@ export { createCrossrefProvider, createEuropePmcProvider, createOpenAlexProvider
 export { createAgentReachProvider } from "./agent-reach.ts";
 export { createArxivProvider } from "./arxiv.ts";
 export { createBraveProvider } from "./brave.ts";
+export { createDoclingProvider } from "./docling.ts";
 export { createJinaProvider } from "./jina.ts";
 export { createLocalExtractProvider } from "./local-extract.ts";
 export { createOllamaProvider } from "./ollama.ts";

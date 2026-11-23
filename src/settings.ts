@@ -69,6 +69,18 @@ export interface LocalExtractSettings {
 	maxPages: number;
 }
 
+export interface DoclingSettings {
+	/** Layout-aware conversion through the docling CLI. Off by default: the first run downloads models. */
+	enabled: boolean;
+	command: string;
+	/** `cpu` by default: the MPS backend fails on float64 tensors in the standard pipeline. */
+	device: string;
+	/** A docling VLM preset (for example granite_docling) replaces the standard pipeline when set. */
+	vlmModel: string;
+	ocr: boolean;
+	timeoutMs: number;
+}
+
 export interface UocrSettings {
 	/** Base URL of the SGLang server; empty disables the provider. */
 	baseUrl: string;
@@ -120,6 +132,7 @@ export interface ResearchSettings {
 	embeddings: EmbeddingSettings;
 	llm: LlmSettings;
 	local: LocalExtractSettings;
+	docling: DoclingSettings;
 	uocr: UocrSettings;
 	context: ContextSettings;
 	archiveRoot: string;
@@ -146,6 +159,7 @@ export const DEFAULT_SETTINGS: ResearchSettings = {
 	ollama: { enabled: true, host: "127.0.0.1", port: "11434" },
 	embeddings: { enabled: true, model: "embeddinggemma", queryPrefix: "" },
 	llm: { model: "", timeoutMs: 120_000 },
+	docling: { enabled: false, command: "docling", device: "cpu", vlmModel: "", ocr: true, timeoutMs: 300_000 },
 	local: { enabled: true, minWords: 80, minCharsPerPage: 200, pdftotext: "pdftotext", maxPages: 200 },
 	uocr: {
 		baseUrl: "",
@@ -251,6 +265,7 @@ export async function loadSettings(options: LoadSettingsOptions = {}): Promise<R
 	const embeddingsRaw = object(raw.embeddings, "embeddings");
 	const llmRaw = object(raw.llm, "llm");
 	const localRaw = object(raw.local_extract, "local_extract");
+	const doclingRaw = object(raw.docling, "docling");
 	const uocrRaw = object(raw.unlimited_ocr, "unlimited_ocr");
 	const contextRaw = object(raw.context, "context");
 	const safetyRaw = object(raw.safety, "safety");
@@ -310,6 +325,14 @@ export async function loadSettings(options: LoadSettingsOptions = {}): Promise<R
 		llm: {
 			model: env.LLM_MODEL?.trim() || text(llmRaw.model, DEFAULT_SETTINGS.llm.model, "llm.model"),
 			timeoutMs: number(llmRaw.timeout_ms, DEFAULT_SETTINGS.llm.timeoutMs, "llm.timeout_ms"),
+		},
+		docling: {
+			enabled: bool(env.DOCLING === "on" ? true : doclingRaw.enabled, DEFAULT_SETTINGS.docling.enabled, "docling.enabled"),
+			command: text(doclingRaw.command, DEFAULT_SETTINGS.docling.command, "docling.command"),
+			device: text(doclingRaw.device, DEFAULT_SETTINGS.docling.device, "docling.device"),
+			vlmModel: text(doclingRaw.vlm_model, DEFAULT_SETTINGS.docling.vlmModel, "docling.vlm_model"),
+			ocr: bool(doclingRaw.ocr, DEFAULT_SETTINGS.docling.ocr, "docling.ocr"),
+			timeoutMs: number(doclingRaw.timeout_ms, DEFAULT_SETTINGS.docling.timeoutMs, "docling.timeout_ms"),
 		},
 		local: {
 			enabled: bool(env.LOCAL_EXTRACT === "off" ? false : localRaw.enabled, DEFAULT_SETTINGS.local.enabled, "local_extract.enabled"),

@@ -28,6 +28,7 @@ import {
 	createSemanticScholarProvider,
 	createSearxngProvider,
 	createTavilyProvider,
+	createDoclingProvider,
 	createLocalExtractProvider,
 	createUnlimitedOcrProvider,
 } from "./src/native/index.ts";
@@ -111,6 +112,9 @@ export default async function (pi: ExtensionAPI) {
 	);
 	for (const warning of warnings) console.warn(warning);
 	const localExtract = createLocalExtractProvider(settings.local, {
+		capture: (url) => rawStore.capture(url, { policy: settings.safety, maxBytes: settings.archiveMaxBytes }),
+	});
+	const docling = createDoclingProvider(settings.docling, {
 		capture: (url) => rawStore.capture(url, { policy: settings.safety, maxBytes: settings.archiveMaxBytes }),
 	});
 	const fullChain = resolveChain([...native, ...plugins], settings.providers);
@@ -250,12 +254,12 @@ export default async function (pi: ExtensionAPI) {
 					let result;
 					let archiveNote = "";
 					try {
-						result = await chainExtract([localExtract, ...chainFor("web")], url, extractOptions);
+						result = await chainExtract([localExtract, docling, ...chainFor("web")], url, extractOptions);
 					} catch (error) {
 						if (!settings.safety.wayback || !(error instanceof HttpStatusError) || !wayBackEligible(error.status)) throw error;
 						const snapshot = await findSnapshot(url, { fetchImpl: retryFetch }).catch(() => null);
 						if (!snapshot) throw error;
-						const archived = await chainExtract([localExtract, ...chainFor("web")], snapshot.url, extractOptions);
+						const archived = await chainExtract([localExtract, docling, ...chainFor("web")], snapshot.url, extractOptions);
 						// Record the text under the URL the report will cite, and mark how it was obtained.
 						ledger.recordExtract(url, archived);
 						ledger.recordUrlStatus(url, "archived", `Wayback snapshot ${snapshot.timestamp} ${snapshot.url}`);

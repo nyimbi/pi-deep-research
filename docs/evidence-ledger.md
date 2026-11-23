@@ -110,3 +110,13 @@ timestamp. 401 and 402 are never routed around. The snapshot URL must be on `web
 Set `safety.wayback` to `false` to turn this off. CDX enumeration and date-pinned lookups
 are not built.
 
+## Docling
+
+`src/native/docling.ts` converts PDFs, office files and images to Markdown with tables through the
+`docling` CLI. It sits after the local text layer in the extract chain, so a text PDF never
+reaches it, and it is off by default (`docling.enabled` or `DOCLING=on`) because the first run
+downloads models. The standard pipeline runs with `--device cpu`: on this Mac the MPS backend
+fails with a float64 error, and a 1-page PDF took about 6 s on CPU. Set `docling.vlm_model`
+(for example `granite_docling`) to use a VLM preset instead. It declines web pages without
+running anything. The Unlimited-OCR provider remains the heavy option for scans.
+
