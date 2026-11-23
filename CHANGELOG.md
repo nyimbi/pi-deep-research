@@ -7,6 +7,7 @@ description: "Changelog for pi-deep-research skill"
 ## [Unreleased]
 
 ### Added
+- Optional mmdc render check at finalize; good diagrams ship as SVG beside their source.
 - Browser rendering removes the page `WebSocket` constructor (best effort; tested against a server that records upgrades).
 - Mermaid diagrams in reports: finalize checks structure and sourced figures (`src/diagrams.ts`); template section added.
 - `unlimited_ocr.backend: llama-cpp` request shape for a patched llama-server. Not verified against a real server: stock llama.cpp cannot load the GGUF.

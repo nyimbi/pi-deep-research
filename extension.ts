@@ -52,6 +52,7 @@ import { createWorkerRunner } from "./src/worker-session.ts";
 import { MAX_WORKERS, renderWorkerOutcomes, runWorkers } from "./src/workers.ts";
 import { RawStore } from "./src/raw-store.ts";
 import { addFinding, loadNotes, newNotes, renderNotes, saveNotes } from "./src/notes.ts";
+import { createMmdcRenderer } from "./src/diagram-render.ts";
 import { resolveArchiveRoot, writeResearchPackage } from "./src/research-package.ts";
 import { HttpStatusError, JsonCache, ProviderBreaker, makeRetryFetch } from "./src/runtime.ts";
 import { readFile } from "node:fs/promises";
@@ -703,6 +704,7 @@ export default async function (pi: ExtensionAPI) {
 					archiveRoot: settings.archiveRoot,
 					strict: params.strict !== false,
 					docsQa: createDocsQaRunner(),
+					renderDiagram: settings.diagrams.render ? createMmdcRenderer(settings.diagrams) : undefined,
 					entailment: llm() ? (text) => checkEntailment(text, ledger, llm()!, { embedder: embedder() }) : undefined,
 				});
 				const lines = [

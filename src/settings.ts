@@ -81,6 +81,13 @@ export interface DoclingSettings {
 	timeoutMs: number;
 }
 
+export interface DiagramSettings {
+	/** Render each Mermaid block with mmdc at finalize: a parse error fails the run and the SVG ships in the package. Off by default. */
+	render: boolean;
+	mmdc: string;
+	timeoutMs: number;
+}
+
 export interface BrowserSettings {
 	/** Render JavaScript pages in a local headless Chromium (Python Playwright). Off by default. */
 	enabled: boolean;
@@ -150,6 +157,7 @@ export interface ResearchSettings {
 	local: LocalExtractSettings;
 	docling: DoclingSettings;
 	browser: BrowserSettings;
+	diagrams: DiagramSettings;
 	workers: WorkerSettings;
 	uocr: UocrSettings;
 	context: ContextSettings;
@@ -179,6 +187,7 @@ export const DEFAULT_SETTINGS: ResearchSettings = {
 	llm: { model: "", timeoutMs: 120_000 },
 	workers: { enabled: true, concurrency: 2, timeoutMs: 600_000 },
 	browser: { enabled: false, python: "python3", timeoutMs: 45_000 },
+	diagrams: { render: false, mmdc: "mmdc", timeoutMs: 60_000 },
 	docling: { enabled: false, command: "docling", device: "cpu", vlmModel: "", ocr: true, timeoutMs: 300_000 },
 	local: { enabled: true, minWords: 80, minCharsPerPage: 200, pdftotext: "pdftotext", maxPages: 200 },
 	uocr: {
@@ -288,6 +297,7 @@ export async function loadSettings(options: LoadSettingsOptions = {}): Promise<R
 	const localRaw = object(raw.local_extract, "local_extract");
 	const doclingRaw = object(raw.docling, "docling");
 	const browserRaw = object(raw.browser, "browser");
+	const diagramsRaw = object(raw.diagrams, "diagrams");
 	const workersRaw = object(raw.workers, "workers");
 	const uocrRaw = object(raw.unlimited_ocr, "unlimited_ocr");
 	const contextRaw = object(raw.context, "context");
@@ -353,6 +363,11 @@ export async function loadSettings(options: LoadSettingsOptions = {}): Promise<R
 			enabled: bool(workersRaw.enabled, DEFAULT_SETTINGS.workers.enabled, "workers.enabled"),
 			concurrency: number(workersRaw.concurrency, DEFAULT_SETTINGS.workers.concurrency, "workers.concurrency"),
 			timeoutMs: number(workersRaw.timeout_ms, DEFAULT_SETTINGS.workers.timeoutMs, "workers.timeout_ms"),
+		},
+		diagrams: {
+			render: bool(env.DIAGRAM_RENDER === "on" ? true : diagramsRaw.render, DEFAULT_SETTINGS.diagrams.render, "diagrams.render"),
+			mmdc: text(diagramsRaw.mmdc, DEFAULT_SETTINGS.diagrams.mmdc, "diagrams.mmdc"),
+			timeoutMs: number(diagramsRaw.timeout_ms, DEFAULT_SETTINGS.diagrams.timeoutMs, "diagrams.timeout_ms"),
 		},
 		browser: {
 			enabled: bool(env.BROWSER_RENDER === "on" ? true : browserRaw.enabled, DEFAULT_SETTINGS.browser.enabled, "browser.enabled"),

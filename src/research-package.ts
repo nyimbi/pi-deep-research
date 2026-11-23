@@ -12,7 +12,8 @@ import type { EntailmentReport } from "./entailment.ts";
 import { checkReportAgainstNotes, loadNotes } from "./notes.ts";
 import { CONFIDENCE_CAP, gradeFindings, type FindingGrade, type Grade } from "./grade.ts";
 import { checkClaims, describeClaimIssues } from "./claim-check.ts";
-import { checkDiagrams } from "./diagrams.ts";
+import { checkDiagrams, mermaidBlocks } from "./diagrams.ts";
+import type { DiagramRenderer } from "./diagram-render.ts";
 import type { DocsQaRunner } from "./docs-qa.ts";
 import { extractUrls, hostOf, normalizeUrl } from "./normalize.ts";
 
@@ -96,6 +97,8 @@ export interface FinalizeOptions {
 	/** Runs the docs-qa gate over the written report; omit to skip. */
 	docsQa?: DocsQaRunner;
 	/** Local-model claim-to-passage check; omit to skip. Findings are warnings, never errors. */
+	/** Renders each Mermaid block; a render error fails a strict run and the SVG is written to diagrams/. Omit to skip. */
+	renderDiagram?: DiagramRenderer;
 	entailment?: (report: string) => Promise<EntailmentReport>;
 	now?: Date;
 }
@@ -273,6 +276,15 @@ export async function writeResearchPackage(options: FinalizeOptions): Promise<Fi
 	if (options.strict !== false) errors.push(...diagramIssues);
 	else warnings.push(...diagramIssues);
 
+	const renders: Array<{ index: number; source: string; svg: string }> = [];
+	if (options.renderDiagram) {
+		for (const block of mermaidBlocks(report)) {
+			const out = await options.renderDiagram(block.source);
+			if (out.svg) renders.push({ index: block.index, source: block.source, svg: out.svg });
+			else (options.strict !== false ? errors : warnings).push(`diagram ${block.index} does not render: ${out.error ?? "no output"}`);
+		}
+	}
+
 	const cited = new Set(citations.known.map((url) => normalizeUrl(url)));
 	const entries = options.ledger
 		.all()
@@ -337,6 +349,13 @@ export async function writeResearchPackage(options: FinalizeOptions): Promise<Fi
 		const destination = join(sourcesDir, fileName);
 		if (typeof content === "string") await writeFile(destination, content, "utf8");
 		else await writeFile(destination, content);
+	}
+	if (renders.length) {
+		await mkdir(join(packagePath, "diagrams"), { recursive: true });
+		for (const r of renders) {
+			await writeFile(join(packagePath, "diagrams", `diagram-${r.index}.mmd`), r.source, "utf8");
+			await writeFile(join(packagePath, "diagrams", `diagram-${r.index}.svg`), r.svg, "utf8");
+		}
 	}
 	await writeFile(indexPath, index, "utf8");
 	await writeFile(readmePath, report, "utf8");

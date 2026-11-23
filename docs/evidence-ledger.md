@@ -71,6 +71,11 @@ labels go through the same number check as a sentence, against the URLs named in
 lines, which must be in the ledger. A block with figures and no source fails. Strict runs fail on
 these; `strict: false` warns.
 
+**Render check.** With `diagrams.render` (or `DIAGRAM_RENDER=on`) finalize also renders each block with
+`mmdc` (`src/diagram-render.ts`). A parse error fails a strict run with mmdc's own message, and each good
+block ships as `diagrams/diagram-N.mmd` and `.svg` in the package, so the report reads without a Mermaid
+renderer. Off by default because mmdc needs a headless Chromium; settings `diagrams.{render, mmdc, timeout_ms}`.
+
 ## Notes, evidence IDs and resume
 
 `research_notes` keeps `notes.json` and `notes.md` beside the package, plus a ledger snapshot,
