@@ -183,7 +183,7 @@ Report every number with its fixture size and what it does not cover.
 
 ## Implementation status (2026-11-23)
 
-Phases 0 to 6 are built, tested and pushed, with the additions listed in `CHANGELOG.md`. These items are
+Phases 0 to 6 are built, tested and pushed, with the additions listed in `CHANGELOG.md`. The owner accepted the open items below as known gaps on 2026-11-23; the roadmap is closed with them recorded, not resolved. These items are
 not closed, and each waits on something outside the code:
 
 | Item | State | Needs |
