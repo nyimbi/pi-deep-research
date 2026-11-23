@@ -6,6 +6,7 @@
  */
 import { LIGHT, DARK } from "./diagram-style.ts";
 import { captionOf, mermaidBlocks } from "./diagrams.ts";
+import { parseCalc } from "./calc.ts";
 import { normalizeUrl } from "./normalize.ts";
 
 export interface ReportDiagram {
@@ -145,6 +146,15 @@ export function markdownToHtml(report: string, options: ReportPageOptions = {}):
 			i++;
 			while (i < lines.length && !lines[i]!.startsWith("```")) body.push(lines[i++]!);
 			i++;
+			if (fence[1] === "calc") {
+				const show = (v: number | null) => (v === null ? "n/a" : Number(v.toFixed(4)).toLocaleString("en-US", { maximumFractionDigits: 4 }));
+				const rows = parseCalc(body.join("\n")).map((r) => {
+					const basis = r.formula ? `<code>${esc(r.formula)}</code>` : r.source === "assumed" ? "assumed" : r.source ? inline(`[source](${r.source})`, ctx) : "";
+					return `<tr><td>${esc(r.name)}</td><td style="text-align:right">${show(r.value)}</td><td>${basis}</td></tr>`;
+				});
+				out.push(`<div class="table-wrap calc"><table><thead><tr><th>Calculation</th><th style="text-align:right">Value</th><th>From</th></tr></thead><tbody>${rows.join("")}</tbody></table></div>`);
+				continue;
+			}
 			out.push(`<pre><code>${esc(body.join("\n"))}</code></pre>`);
 			continue;
 		}

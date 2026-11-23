@@ -16,6 +16,7 @@ import { captionOf, checkDiagrams, embedRenderedDiagrams, lintDiagrams, mermaidB
 import { evidenceGraph } from "./evidence-graph.ts";
 import type { DiagramRenderer } from "./diagram-render.ts";
 import type { DocsQaRunner } from "./docs-qa.ts";
+import { checkCalcs } from "./calc.ts";
 import { renderReportPage, type CitedPassage } from "./report-html.ts";
 import { extractUrls, hostOf, normalizeUrl } from "./normalize.ts";
 
@@ -286,6 +287,10 @@ export async function writeResearchPackage(options: FinalizeOptions): Promise<Fi
 	const diagramIssues = checkDiagrams(report, options.ledger);
 	if (options.strict !== false) errors.push(...diagramIssues);
 	else warnings.push(...diagramIssues);
+
+	const calcIssues = checkCalcs(report, (url) => options.ledger.source(url)?.extracted?.content, (url) => Boolean(options.ledger.source(url)));
+	if (options.strict !== false) errors.push(...calcIssues);
+	else warnings.push(...calcIssues);
 
 	const graph = evidenceGraph(report, options.ledger);
 	const renders: Array<{ index: number; source: string; svg: string; html?: string; dark?: { svg: string; html: string } }> = [];

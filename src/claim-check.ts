@@ -6,7 +6,8 @@
  * Scope: numbers with a percent sign or decimal point, and integers of three
  * or more digits (years included). Small bare integers are ignored because
  * they are usually counts and ordinals. A sentence marked "(derived)" is
- * skipped, for arithmetic over cited figures. A source that says "thirty"
+ * skipped, for arithmetic over cited figures; `(derived: name)` points at a
+ * calc block, which recomputes the value (see calc.ts). A source that says "thirty"
  * where the report says "30" is a false positive; mark the sentence derived
  * or quote the source's own wording.
  */
@@ -70,7 +71,7 @@ export function checkClaims(report: string, sourceText: (url: string) => string 
 		return haystacks.get(key) || undefined;
 	};
 	for (const unit of units(report)) {
-		if (/\(derived\)/i.test(unit)) continue;
+		if (/\(derived(?::[^)]*)?\)/i.test(unit)) continue;
 		const urls = [...new Set(extractUrls(unit))];
 		const texts = urls.map(hay).filter((value): value is string => Boolean(value));
 		if (!texts.length) continue;
