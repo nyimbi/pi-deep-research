@@ -71,6 +71,13 @@ labels go through the same number check as a sentence, against the URLs named in
 lines, which must be in the ledger. A block with figures and no source fails. Strict runs fail on
 these; `strict: false` warns.
 
+**Charts.** A `pie` or `xychart-beta` block is a plot of data, so its data must already be in the report. Each
+plotted point (`"label" : value`, or the n-th `x-axis` category paired with the n-th `bar`/`line` value) must
+match a row of a Markdown table whose cells hold the label and the number. A chart with no table, a value
+with no category, a value in another row or a slice no row backs fails a strict run. The table's own
+figures are covered by the claim check when the row cites a source, so a chart needs no `%% source:` line.
+A table with no citation backs the chart without the figures being checked against any page.
+
 **Render check.** With `diagrams.render` (or `DIAGRAM_RENDER=on`) finalize also renders each block with
 `mmdc` (`src/diagram-render.ts`). A parse error fails a strict run with mmdc's own message, and each good
 block ships as `diagrams/diagram-N.mmd` and `.svg` in the package, so the report reads without a Mermaid

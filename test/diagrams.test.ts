@@ -23,7 +23,7 @@ describe("checkDiagrams", () => {
 		assert.match(out[0], /diagram 1: .*77\.7%/);
 	});
 	it("fails figures with no source, and a source the tools never returned", () => {
-		assert.match(checkDiagrams(fence("pie title Share\n  \"A\" : 45.5\n  \"B\" : 54.5"), ledger())[0], /shows figures but names no source/);
+		assert.match(checkDiagrams(fence("flowchart LR\n  A[Cut 45.5%] --> B[Done]"), ledger())[0], /shows figures but names no source/);
 		assert.match(checkDiagrams(fence("flowchart LR\n  %% source: https://evil.example/z\n  A --> B"), ledger())[0], /never returned/);
 	});
 	it("allows a purely structural diagram with no source", () => {
@@ -40,5 +40,35 @@ describe("checkDiagrams", () => {
 	it("numbers each block and finds several", () => {
 		const r = fence("flowchart TD\n  A-->B") + "\n\n" + fence("sequenceDiagram\n  A->>B: hi");
 		assert.equal(mermaidBlocks(r).length, 2);
+	});
+
+	describe("charts backed by a table", () => {
+		const table = "\n| Provider | Share |\n|---|---|\n| Alpha | 45.5% |\n| Beta | 54.5% |\n";
+		const pie = (a: string, b: string) => fence(`pie title Share\n  "Alpha" : ${a}\n  "Beta" : ${b}`) + table;
+		it("passes a pie whose every slice is a table row, with no separate source", () => {
+			assert.deepEqual(checkDiagrams(pie("45.5", "54.5"), ledger()), []);
+		});
+		it("fails a slice whose value differs from its row, and a slice whose label has no row", () => {
+			const wrong = checkDiagrams(pie("45.5", "50"), ledger());
+			assert.equal(wrong.length, 1);
+			assert.match(wrong[0], /Beta = 50, which matches no row/);
+			assert.match(checkDiagrams(fence('pie title S\n  "Gamma" : 45.5') + table, ledger())[0], /Gamma = 45.5/);
+		});
+		it("fails a chart when the report has no table", () => {
+			assert.match(checkDiagrams(fence('pie title S\n  "Alpha" : 45.5'), ledger())[0], /no table to back/);
+		});
+		it("pairs xychart-beta categories with values by position", () => {
+			const chart = (vals: string) => fence(`xychart-beta\n  title "Share"\n  x-axis [Alpha, Beta]\n  bar [${vals}]`) + table;
+			assert.deepEqual(checkDiagrams(chart("45.5, 54.5"), ledger()), []);
+			assert.match(checkDiagrams(chart("54.5, 45.5"), ledger())[0], /Alpha = 54.5/);
+		});
+		it("a value with no category cannot be backed", () => {
+			const extra = fence("xychart-beta\n  x-axis [Alpha]\n  bar [45.5, 54.5]") + table;
+			assert.match(checkDiagrams(extra, ledger())[0], /no category 2/);
+		});
+		it("a value sitting in a different row does not back the point", () => {
+			const swapped = fence('pie title S\n  "Alpha" : 54.5\n  "Beta" : 45.5') + table;
+			assert.equal(checkDiagrams(swapped, ledger()).length, 2);
+		});
 	});
 });

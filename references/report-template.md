@@ -169,6 +169,7 @@ pie, xychart-beta and the other standard types). Rules, enforced by `research_fi
 - A figure in a label (a percentage, a decimal, a number of three or more digits) must appear in a
   source named inside the block with a comment line: `%% source: https://...`. The source must be one the
   tools returned. A diagram with figures and no source fails.
+- A `pie` or `xychart-beta` chart must plot figures that appear in a table in the report: put the table first, cite its rows, then chart it. Each plotted label and value must be in one row.
 - A purely structural diagram needs no source. Put the caption and a cited sentence beside it.
 
 ## Writing Quality Anti-Patterns

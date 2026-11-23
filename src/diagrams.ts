@@ -45,6 +45,62 @@ function structural(source: string): string | null {
 	return null;
 }
 
+/** Table rows of the report as cell lists, with the separator rows removed. */
+function tableRows(report: string): string[][] {
+	const rows: string[][] = [];
+	let fenced = false;
+	for (const line of report.split("\n")) {
+		if (/^\s*```/.test(line)) fenced = !fenced;
+		if (fenced || !/^\s*\|.*\|\s*$/.test(line) || /^\s*\|[\s:|-]+\|\s*$/.test(line)) continue;
+		rows.push(line.trim().slice(1, -1).split("|").map((cell) => cell.replace(/[*_`]/g, "").trim().toLowerCase()));
+	}
+	return rows;
+}
+
+function asNumber(cell: string): number | null {
+	const plain = cell.replace(/,/g, "").replace(/\s?%$/, "").replace(/^[$€£]/, "");
+	return /^-?\d+(\.\d+)?$/.test(plain) ? Number(plain) : null;
+}
+
+/** The (label, value) points a pie or xychart-beta block plots; null for other types. */
+export function chartPoints(source: string): Array<{ label: string; value: number }> | null {
+	const lines = source.split("\n").map((l) => l.trim()).filter((l) => l && !l.startsWith("%%"));
+	const kind = lines[0]?.split(/\s/)[0];
+	if (kind === "pie") {
+		const points: Array<{ label: string; value: number }> = [];
+		for (const line of lines.slice(1)) {
+			const m = /^"([^"]+)"\s*:\s*(-?\d+(?:\.\d+)?)\s*$/.exec(line);
+			if (m) points.push({ label: m[1], value: Number(m[2]) });
+		}
+		return points;
+	}
+	if (kind === "xychart-beta") {
+		const list = (text: string) => text.split(",").map((x) => x.trim().replace(/^"|"$/g, ""));
+		const axis = lines.map((l) => /^x-axis\s+(?:"[^"]*"\s+)?\[(.*)\]\s*$/.exec(l)).find(Boolean);
+		if (!axis) return [];
+		const labels = list(axis[1]);
+		const points: Array<{ label: string; value: number }> = [];
+		for (const line of lines) {
+			const m = /^(?:bar|line)\s+(?:"[^"]*"\s+)?\[(.*)\]\s*$/.exec(line);
+			if (m) list(m[1]).forEach((v, i) => { if (v !== "" && !Number.isNaN(Number(v))) points.push({ label: labels[i] ?? `(no category ${i + 1})`, value: Number(v) }); });
+		}
+		return points;
+	}
+	return null;
+}
+
+/** Every plotted point must be a row of a table in the report: that row's cells hold the label and the value. */
+function chartIssues(source: string, report: string, label: string): string[] {
+	const points = chartPoints(source);
+	if (points === null) return [];
+	if (!points.length) return [`${label} is a chart with no readable data points`];
+	const rows = tableRows(report);
+	if (!rows.length) return [`${label} plots ${points.length} figure(s) but the report has no table to back them`];
+	return points
+		.filter((p) => !rows.some((row) => row.includes(p.label.toLowerCase()) && row.some((cell) => asNumber(cell) === p.value)))
+		.map((p) => `${label} plots ${p.label} = ${p.value}, which matches no row of any table in the report`);
+}
+
 /** Messages for finalize; empty when every diagram is well formed and its figures are sourced. */
 export function checkDiagrams(report: string, ledger: SourceLedger): string[] {
 	const out: string[] = [];
@@ -55,13 +111,14 @@ export function checkDiagrams(report: string, ledger: SourceLedger): string[] {
 			out.push(`${label} ${problem}`);
 			continue;
 		}
+		out.push(...chartIssues(block.source, report, label));
 		const urls = block.source.split("\n").filter((l) => /^\s*%%\s*source:/i.test(l)).flatMap((l) => extractUrls(l));
 		const unknown = urls.filter((u) => !ledger.source(u));
 		if (unknown.length) out.push(`${label} cites ${unknown.length} source(s) the tools never returned: ${unknown.join(", ")}`);
 		const labels = block.source.split("\n").filter((l) => !/^\s*%%/.test(l)).join(" ");
 		const known = urls.filter((u) => ledger.source(u));
 		if (!known.length) {
-			if (/(?<![\w.,])(\d+\.\d+|\d{3,}|\d+\s?%)/.test(labels)) out.push(`${label} shows figures but names no source; add "%% source: <url>" inside the block`);
+			if (chartPoints(block.source) === null && /(?<![\w.,])(\d+\.\d+|\d{3,}|\d+\s?%)/.test(labels)) out.push(`${label} shows figures but names no source; add "%% source: <url>" inside the block`);
 			continue;
 		}
 		const issues = checkClaims(`- ${labels} ${known.join(" ")}`, (url) => ledger.source(url)?.extracted?.content);
