@@ -38,6 +38,23 @@ export interface OllamaSettings {
 	port: string;
 }
 
+export interface UocrSettings {
+	/** Base URL of the SGLang server; empty disables the provider. */
+	baseUrl: string;
+	model: string;
+	apiKey: string;
+	pdftoppm: string;
+	dpi: number;
+	maxPages: number;
+	pagesPerRequest: number;
+	tokensPerPage: number;
+	cropMode: boolean;
+	/** Pre-serialized DeepseekOCRNoRepeatNGramLogitProcessor.to_str(); empty omits it. */
+	logitProcessor: string;
+	ngramSize: number;
+	windowSize: number;
+}
+
 export interface SafetySettings {
 	allowPrivateHosts: boolean;
 	allowedHosts: string[];
@@ -61,6 +78,7 @@ export interface ResearchSettings {
 	breaker: BreakerSettings;
 	searxng: SearxngSettings;
 	ollama: OllamaSettings;
+	uocr: UocrSettings;
 	archiveRoot: string;
 	archiveMaxBytes: number;
 	safety: SafetySettings;
@@ -83,6 +101,20 @@ export const DEFAULT_SETTINGS: ResearchSettings = {
 	breaker: { failures: 3, cooldownMs: 60_000 },
 	searxng: { baseUrl: "", fallbackUrls: [], language: "en", categories: "general", safeSearch: 0, engines: [] },
 	ollama: { enabled: true, host: "127.0.0.1", port: "11434" },
+	uocr: {
+		baseUrl: "",
+		model: "Unlimited-OCR-2",
+		apiKey: "",
+		pdftoppm: "pdftoppm",
+		dpi: 150,
+		maxPages: 40,
+		pagesPerRequest: 20,
+		tokensPerPage: 8000,
+		cropMode: true,
+		logitProcessor: "",
+		ngramSize: 35,
+		windowSize: 1024,
+	},
 	archiveRoot: join("docs", "research"),
 	archiveMaxBytes: 5 * 1024 * 1024,
 	safety: {
@@ -165,6 +197,7 @@ export async function loadSettings(options: LoadSettingsOptions = {}): Promise<R
 	const breakerRaw = object(raw.breaker, "breaker");
 	const searxngRaw = object(raw.searxng, "searxng");
 	const ollamaRaw = object(raw.ollama, "ollama");
+	const uocrRaw = object(raw.unlimited_ocr, "unlimited_ocr");
 	const safetyRaw = object(raw.safety, "safety");
 	const budgetRaw = object(raw.budget, "budget");
 	const archiveRaw = object(raw.archive, "archive");
@@ -213,6 +246,20 @@ export async function loadSettings(options: LoadSettingsOptions = {}): Promise<R
 			),
 			host: envHost || text(ollamaRaw.host, DEFAULT_SETTINGS.ollama.host, "ollama.host"),
 			port: envPort || text(ollamaRaw.port, DEFAULT_SETTINGS.ollama.port, "ollama.port"),
+		},
+		uocr: {
+			baseUrl: (env.UOCR_BASE_URL ?? text(uocrRaw.base_url, DEFAULT_SETTINGS.uocr.baseUrl, "unlimited_ocr.base_url")).trim().replace(/\/+$/, ""),
+			model: text(uocrRaw.model, DEFAULT_SETTINGS.uocr.model, "unlimited_ocr.model"),
+			apiKey: env.UOCR_API_KEY ?? text(uocrRaw.api_key, DEFAULT_SETTINGS.uocr.apiKey, "unlimited_ocr.api_key"),
+			pdftoppm: text(uocrRaw.pdftoppm, DEFAULT_SETTINGS.uocr.pdftoppm, "unlimited_ocr.pdftoppm"),
+			dpi: number(uocrRaw.dpi, DEFAULT_SETTINGS.uocr.dpi, "unlimited_ocr.dpi", 36),
+			maxPages: number(uocrRaw.max_pages, DEFAULT_SETTINGS.uocr.maxPages, "unlimited_ocr.max_pages", 1),
+			pagesPerRequest: number(uocrRaw.pages_per_request, DEFAULT_SETTINGS.uocr.pagesPerRequest, "unlimited_ocr.pages_per_request", 1),
+			tokensPerPage: number(uocrRaw.tokens_per_page, DEFAULT_SETTINGS.uocr.tokensPerPage, "unlimited_ocr.tokens_per_page", 1),
+			cropMode: bool(uocrRaw.crop_mode, DEFAULT_SETTINGS.uocr.cropMode, "unlimited_ocr.crop_mode"),
+			logitProcessor: text(uocrRaw.logit_processor, DEFAULT_SETTINGS.uocr.logitProcessor, "unlimited_ocr.logit_processor"),
+			ngramSize: number(uocrRaw.ngram_size, DEFAULT_SETTINGS.uocr.ngramSize, "unlimited_ocr.ngram_size", 1),
+			windowSize: number(uocrRaw.window_size, DEFAULT_SETTINGS.uocr.windowSize, "unlimited_ocr.window_size", 1),
 		},
 		archiveRoot: expandHome(text(archiveRaw.root, DEFAULT_SETTINGS.archiveRoot, "archive.root")),
 		archiveMaxBytes: number(archiveRaw.max_bytes, DEFAULT_SETTINGS.archiveMaxBytes, "archive.max_bytes", 1024),

@@ -5,7 +5,7 @@
  * Search and extraction run a provider chain: SEARCH_PROVIDERS or
  * ~/.pi/agent/pi-deep-research/config.json {"providers": [...]}, defaulting to
  * tavily,brave,agent-reach. Native providers: tavily, brave, searxng, ollama,
- * agent-reach, jina (extract), arxiv, semantic-scholar. Drop-in plugins still
+ * agent-reach, jina (extract), unlimited-ocr (local PDF/image OCR), arxiv, semantic-scholar. Drop-in plugins still
  * load from ~/.pi/agent/pi-deep-research/providers/.
  */
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
@@ -27,6 +27,7 @@ import {
 	createSemanticScholarProvider,
 	createSearxngProvider,
 	createTavilyProvider,
+	createUnlimitedOcrProvider,
 } from "./src/native/index.ts";
 import { RawStore } from "./src/raw-store.ts";
 import { writeResearchPackage } from "./src/research-package.ts";
@@ -71,6 +72,10 @@ export default async function (pi: ExtensionAPI) {
 		createOllamaProvider(settings.ollama, retryFetch),
 		createAgentReachProvider(),
 		createJinaProvider(retryFetch),
+		createUnlimitedOcrProvider(settings.uocr, {
+			capture: (url) => rawStore.capture(url, { policy: settings.safety, maxBytes: settings.archiveMaxBytes }),
+			fetchImpl: retryFetch,
+		}),
 		createArxivProvider(retryFetch),
 		createSemanticScholarProvider(retryFetch),
 		createOpenAlexProvider(retryFetch),

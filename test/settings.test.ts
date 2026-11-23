@@ -67,3 +67,17 @@ describe("loadSettings", () => {
 		);
 	});
 });
+
+describe("unlimited_ocr settings", () => {
+	it("is off by default and reads config plus env override", async () => {
+		const off = await loadSettings({ env: {}, readFileImpl: async () => "{}" });
+		assert.equal(off.uocr.baseUrl, "");
+		const on = await loadSettings({
+			env: { UOCR_BASE_URL: "http://127.0.0.1:10000/" },
+			readFileImpl: async () => JSON.stringify({ unlimited_ocr: { max_pages: 5, crop_mode: false } }),
+		});
+		assert.equal(on.uocr.baseUrl, "http://127.0.0.1:10000");
+		assert.equal(on.uocr.maxPages, 5);
+		assert.equal(on.uocr.cropMode, false);
+	});
+});

@@ -125,6 +125,31 @@ startup error (never a silent fallback to cloud defaults). Custom engines —
 including local ones like SearXNG or self-hosted Firecrawl — drop in as
 single `.ts` files (details in [Configuration](#search-provider-details)).
 
+### Local OCR for PDFs and images
+
+`unlimited-ocr` is an extract-only provider that sends PDFs and images to a
+local [Baidu Unlimited-OCR-2](https://huggingface.co/baidu/Unlimited-OCR-2)
+server (MIT licence). It is off until you set a base URL. PDF pages are rendered
+with `pdftoppm` (poppler), sent in batches as one multi-page request, and the
+`<PAGE>` markers are stripped. HTML pages are rejected so the chain moves on;
+list it before the generic fetch fallback, for example
+`SEARCH_PROVIDERS=searxng,unlimited-ocr,jina`.
+
+Serve the model with the SGLang build described on the model card (it exposes
+`/v1/chat/completions`), then configure `~/.pi/agent/pi-deep-research/config.json`:
+
+```json
+{ "unlimited_ocr": { "base_url": "http://127.0.0.1:10000", "max_pages": 40 } }
+```
+
+`UOCR_BASE_URL` and `UOCR_API_KEY` override the file. Other keys: `model`,
+`dpi`, `pages_per_request`, `tokens_per_page`, `crop_mode`, `pdftoppm`. The card's
+no-repeat logit processor is a serialized Python object; produce it with
+`DeepseekOCRNoRepeatNGramLogitProcessor.to_str()` and paste it into
+`logit_processor`. Without it the request still works, but the card's
+repetition guard is off. The community MLX port is v1 only and has no server, so
+it is not supported here.
+
 ## Evidence ledger and finalize
 
 The extension keeps a per-session ledger of every search result and extraction:

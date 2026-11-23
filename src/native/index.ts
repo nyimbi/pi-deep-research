@@ -7,3 +7,4 @@ export { createOllamaProvider } from "./ollama.ts";
 export { createSemanticScholarProvider } from "./semantic-scholar.ts";
 export { createSearxngProvider } from "./searxng.ts";
 export { createTavilyProvider } from "./tavily.ts";
+export { createUnlimitedOcrProvider } from "./unlimited-ocr.ts";

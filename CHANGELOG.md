@@ -4,6 +4,12 @@ description: "Changelog for pi-deep-research skill"
 
 # Changelog
 
+## [Unreleased]
+
+### Added
+- `unlimited-ocr` extract provider: local PDF and image OCR through a Baidu
+  Unlimited-OCR-2 server, configured under `unlimited_ocr` in config.json.
+
 ## [0.5.0] - 2026-11-23
 
 ### Added
