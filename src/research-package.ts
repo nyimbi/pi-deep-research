@@ -12,6 +12,7 @@ import type { EntailmentReport } from "./entailment.ts";
 import { checkReportAgainstNotes, loadNotes } from "./notes.ts";
 import { CONFIDENCE_CAP, gradeFindings, type FindingGrade, type Grade } from "./grade.ts";
 import { checkClaims, describeClaimIssues } from "./claim-check.ts";
+import { checkDiagrams } from "./diagrams.ts";
 import type { DocsQaRunner } from "./docs-qa.ts";
 import { extractUrls, hostOf, normalizeUrl } from "./normalize.ts";
 
@@ -267,6 +268,10 @@ export async function writeResearchPackage(options: FinalizeOptions): Promise<Fi
 	const claimIssues = describeClaimIssues(checkClaims(report, (url) => options.ledger.source(url)?.extracted?.content));
 	if (options.strict !== false) errors.push(...claimIssues);
 	else warnings.push(...claimIssues);
+
+	const diagramIssues = checkDiagrams(report, options.ledger);
+	if (options.strict !== false) errors.push(...diagramIssues);
+	else warnings.push(...diagramIssues);
 
 	const cited = new Set(citations.known.map((url) => normalizeUrl(url)));
 	const entries = options.ledger

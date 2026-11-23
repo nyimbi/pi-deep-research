@@ -159,6 +159,18 @@ one. Do not hand-write hashes; `research_finalize` computes them.
 
 ---
 
+## Diagrams
+
+A diagram earns its place when it shows structure prose cannot: a process, a timeline, a dependency
+or a comparison with figures. Use a fenced `mermaid` block (flowchart, sequenceDiagram, timeline,
+pie, xychart-beta and the other standard types). Rules, enforced by `research_finalize`:
+
+- The block must start with a real diagram type and have balanced brackets and quotes.
+- A figure in a label (a percentage, a decimal, a number of three or more digits) must appear in a
+  source named inside the block with a comment line: `%% source: https://...`. The source must be one the
+  tools returned. A diagram with figures and no source fails.
+- A purely structural diagram needs no source. Put the caption and a cited sentence beside it.
+
 ## Writing Quality Anti-Patterns
 
 These are the patterns that make reports feel shallow. Avoid them:

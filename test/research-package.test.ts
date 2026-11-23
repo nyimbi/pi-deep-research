@@ -140,6 +140,17 @@ describe("writeResearchPackage", () => {
 		assert.ok(result.errors.some((error) => /never returned/.test(error)));
 	});
 
+	it("fails a diagram whose figure the named source does not contain, and warns instead when strict is off", async () => {
+		const root = await cwd();
+		const diagram = "\n\n```mermaid\nflowchart LR\n  %% source: https://example.com/spec\n  A[Timeout] -->|99.5%| B[Reply]\n```\n";
+		const run = (strict: boolean) =>
+			writeResearchPackage({ cwd: root, slug: strict ? "dg-strict" : "dg-loose", question: "What timeout?", depth: "standard", report: REPORT + diagram, ledger: ledgerWith(), archiveRoot: "docs/research", strict });
+		assert.ok((await run(true)).errors.some((e) => /diagram 1: .*99\.5%/.test(e)));
+		const loose = await run(false);
+		assert.ok(!loose.errors.some((e) => /diagram 1/.test(e)));
+		assert.ok(loose.warnings.some((w) => /diagram 1/.test(w)));
+	});
+
 	it("fails a cited source that was never extracted, unless strict is off", async () => {
 		const root = await cwd();
 		const ledger = new SourceLedger();

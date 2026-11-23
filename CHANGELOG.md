@@ -7,6 +7,7 @@ description: "Changelog for pi-deep-research skill"
 ## [Unreleased]
 
 ### Added
+- Mermaid diagrams in reports: finalize checks structure and sourced figures (`src/diagrams.ts`); template section added.
 - `unlimited_ocr.backend: llama-cpp` request shape for a patched llama-server. Not verified against a real server: stock llama.cpp cannot load the GGUF.
 - `research_workers`: up to 8 sub-questions in parallel, each in an isolated agent session; claims survive only if they cite a URL the ledger holds.
 - Domain adapters (EDGAR, ClinicalTrials.gov, PubMed, CourtListener, GitHub code search, GDELT) with typed records, reached through `web_search` with `sources: "domain"`.

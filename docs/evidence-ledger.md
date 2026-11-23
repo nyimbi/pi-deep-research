@@ -62,6 +62,15 @@ again in the session, and the retry layer never retries a 402. `ledger.json` car
 statuses, and the package stats report `citationReturnRate`, the share of cited URLs that a
 tool returned (1 means none were invented).
 
+## Diagrams
+
+`src/diagrams.ts` checks every fenced `mermaid` block in the report. The structural check needs a
+known diagram type and balanced brackets and quotes (no renderer is involved, so a diagram can still
+fail to render for reasons this does not see; `mmdc` renders the same text). Figures in a block's
+labels go through the same number check as a sentence, against the URLs named in `%% source:` comment
+lines, which must be in the ledger. A block with figures and no source fails. Strict runs fail on
+these; `strict: false` warns.
+
 ## Notes, evidence IDs and resume
 
 `research_notes` keeps `notes.json` and `notes.md` beside the package, plus a ledger snapshot,
