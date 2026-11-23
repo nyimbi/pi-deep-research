@@ -1,4 +1,4 @@
-import { assertFetchableUrlResolved, type UrlPolicy } from "./runtime.ts";
+import { assertFetchableUrlResolved, HttpStatusError, type UrlPolicy } from "./runtime.ts";
 import type { ExtractResult, SearchResult } from "./types.ts";
 
 export const MAX_WORDS = 8000;
@@ -76,7 +76,7 @@ export async function extractWithFetch(
 		resp = null;
 	}
 	if (!resp) throw new Error(`too many redirects for ${url}`);
-	if (!resp.ok) throw new Error(`Failed to fetch ${url}: ${resp.status}`);
+	if (!resp.ok) throw new HttpStatusError(resp.status, `Failed to fetch ${url}: ${resp.status}`);
 	const contentType = (resp.headers.get("content-type") ?? "").toLowerCase();
 	if (contentType.includes("application/pdf")) {
 		throw new Error(`PDF extraction requires a provider with document support (Tavily, Jina, or Ollama); basic fetch cannot parse ${url}`);

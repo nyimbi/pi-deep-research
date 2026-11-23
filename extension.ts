@@ -34,7 +34,7 @@ import { chunkText, headWords, rankChunks } from "./src/chunks.ts";
 import { UrlProvenance } from "./src/provenance.ts";
 import { RawStore } from "./src/raw-store.ts";
 import { writeResearchPackage } from "./src/research-package.ts";
-import { JsonCache, ProviderBreaker, makeRetryFetch } from "./src/runtime.ts";
+import { HttpStatusError, JsonCache, ProviderBreaker, makeRetryFetch } from "./src/runtime.ts";
 import { join } from "node:path";
 import { loadSettings } from "./src/settings.ts";
 import type { Attempt, SearchResult } from "./src/types.ts";
@@ -210,6 +210,11 @@ export default async function (pi: ExtensionAPI) {
 					failures.push(`${url}: refused, ${verdict.reason}`);
 					continue;
 				}
+				const blocked = ledger.blockedReason(url);
+				if (blocked) {
+					failures.push(`${url}: not fetched again (${blocked})`);
+					continue;
+				}
 				try {
 					const result = await chainExtract(chainFor("web"), url, {
 						timeoutMs: settings.timeoutMs,
@@ -226,6 +231,7 @@ export default async function (pi: ExtensionAPI) {
 						ledger.attachRaw(url, raw);
 						pageNote = `Saved the page copy (${raw.bytes} bytes, ${raw.suffix}).`;
 					} catch (error) {
+						if (error instanceof HttpStatusError && error.status === 402) ledger.recordUrlStatus(url, "payment_required", "HTTP 402");
 						pageNote = `Page copy not saved: ${error instanceof Error ? error.message : String(error)}`;
 					}
 					const head = headWords(result.content, settings.context.inlineWords);

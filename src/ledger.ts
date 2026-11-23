@@ -25,6 +25,17 @@ export interface LedgerSource {
 	raw?: RawCapture;
 }
 
+/** Terminal fetch outcomes. A URL with one of the blocking statuses is never fetched again. */
+export type UrlStatus = "payment_required" | "robots_blocked" | "archived" | "duplicate";
+
+export const BLOCKING_STATUSES: readonly UrlStatus[] = ["payment_required", "robots_blocked"];
+
+export interface UrlStatusRecord {
+	status: UrlStatus;
+	detail: string;
+	at: string;
+}
+
 export interface QueryLogEntry {
 	provider: string;
 	query: string;
@@ -54,6 +65,9 @@ export interface LedgerStats {
 	queryCalls: number;
 	uniqueQueries: number;
 	cacheHits: number;
+	/** known / (known + unknown) citations in the report; null without a report or citations. */
+	citationReturnRate: number | null;
+	urlStatuses: Record<string, number>;
 	providers: Record<string, number>;
 	tiers: Record<string, number>;
 	domains: Record<string, number>;
@@ -73,6 +87,7 @@ export class SourceLedger {
 	private searches = 0;
 	private extracts = 0;
 	private cacheHits = 0;
+	private readonly urlStatuses = new Map<string, UrlStatusRecord>();
 	private readonly providerCalls: Record<string, number> = {};
 	private readonly queryLog: QueryLogEntry[] = [];
 
@@ -156,6 +171,20 @@ export class SourceLedger {
 		});
 	}
 
+	recordUrlStatus(url: string, status: UrlStatus, detail = ""): void {
+		this.urlStatuses.set(normalizeUrl(url), { status, detail: detail.slice(0, 200), at: now() });
+	}
+
+	urlStatus(url: string): UrlStatusRecord | undefined {
+		return this.urlStatuses.get(normalizeUrl(url));
+	}
+
+	/** The reason a URL must not be fetched again, or null. */
+	blockedReason(url: string): string | null {
+		const record = this.urlStatus(url);
+		return record && BLOCKING_STATUSES.includes(record.status) ? `${record.status}${record.detail ? `: ${record.detail}` : ""}` : null;
+	}
+
 	attachRaw(url: string, raw: RawCapture): void {
 		const key = normalizeUrl(url);
 		const existing = this.sources.get(key);
@@ -200,6 +229,8 @@ export class SourceLedger {
 		const cited = report ? this.citations(report).known.length : 0;
 		const uniqueQueries = new Set(this.queryLog.map((entry) => entry.query)).size;
 		const unknowns = report ? this.citations(report).unknown.length : 0;
+		const statuses: Record<string, number> = {};
+		for (const record of this.urlStatuses.values()) statuses[record.status] = (statuses[record.status] ?? 0) + 1;
 		return {
 			sources: this.sources.size,
 			extracted: [...this.sources.values()].filter((source) => source.extracted).length,
@@ -212,6 +243,8 @@ export class SourceLedger {
 			queryCalls: this.queryLog.length,
 			uniqueQueries,
 			cacheHits: this.cacheHits,
+			citationReturnRate: report && cited + unknowns > 0 ? cited / (cited + unknowns) : null,
+			urlStatuses: statuses,
 			providers: { ...this.providerCalls },
 			tiers,
 			domains,
@@ -232,6 +265,7 @@ export class SourceLedger {
 			sources: this.all(),
 			queries: this.queryLogEntries(),
 			failures: this.failureLog(),
+			urlStatuses: Object.fromEntries(this.urlStatuses),
 		};
 	}
 }

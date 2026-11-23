@@ -9,7 +9,7 @@
 import { createHash } from "node:crypto";
 import { copyFile, mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { assertFetchableUrlResolved, type UrlPolicy } from "./runtime.ts";
+import { assertFetchableUrlResolved, HttpStatusError, type UrlPolicy } from "./runtime.ts";
 
 export interface RawCapture {
 	url: string;
@@ -70,7 +70,7 @@ export class RawStore {
 			response = null;
 		}
 		if (!response) throw new Error(`too many redirects for ${url}`);
-		if (!response.ok) throw new Error(`page capture failed ${response.status} for ${url}`);
+		if (!response.ok) throw new HttpStatusError(response.status, `page capture failed ${response.status} for ${url}`);
 		const declared = Number(response.headers.get("content-length") ?? "0");
 		if (declared > maxBytes) throw new Error(`page exceeds ${maxBytes} bytes for ${url}`);
 		const bytes = new Uint8Array(await response.arrayBuffer());

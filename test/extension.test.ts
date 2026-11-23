@@ -9,12 +9,19 @@ import { after, before, describe, it } from "node:test";
 let server: Server;
 let base = "";
 let home = "";
+const hits: string[] = [];
 const tools: Record<string, any> = {};
 const handlers: Record<string, (event: any) => any> = {};
 
 before(async () => {
 	home = await mkdtemp(join(tmpdir(), "pi-ext-"));
 	server = createServer((req, res) => {
+		hits.push(req.url ?? "");
+		if (req.url?.startsWith("/pay")) {
+			res.writeHead(402);
+			res.end("pay up");
+			return;
+		}
 		res.writeHead(200, { "content-type": "text/html" });
 		res.end(`<html><title>T</title><body><p>hello ${req.url}</p></body></html>`);
 	});
@@ -54,5 +61,14 @@ describe("extension URL provenance", () => {
 		handlers.input({ type: "input", text: `read ${base}/doc please`, source: "interactive" });
 		assert.match(await run("web_extract", { url: `${base}/doc` }), /hello \/doc/);
 		assert.match(await run("web_extract", { url: `${base}/doc?q=secret` }), /refused/);
+	});
+
+	it("treats HTTP 402 as terminal and never fetches the URL again", async () => {
+		handlers.input({ type: "input", text: `read ${base}/pay`, source: "interactive" });
+		assert.match(await run("web_extract", { url: `${base}/pay` }), /FAILED/);
+		const before = hits.filter((h) => h === "/pay").length;
+		assert.equal(before, 1);
+		assert.match(await run("web_extract", { url: `${base}/pay` }), /payment_required/);
+		assert.equal(hits.filter((h) => h === "/pay").length, before);
 	});
 });

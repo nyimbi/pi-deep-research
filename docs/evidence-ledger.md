@@ -48,3 +48,12 @@ closed rather than passing silently.
 It rejects a report that cites a URL the tools never returned, and warns when
 a cited source was never extracted. Citation checking is the difference between
 a report that looks sourced and one that can be re-read.
+
+## Terminal statuses and citation rate
+
+The ledger records a typed status per URL: `payment_required` (HTTP 402), `robots_blocked`,
+`archived` and `duplicate`. The first two are terminal: `web_extract` will not fetch that URL
+again in the session, and the retry layer never retries a 402. `ledger.json` carries the
+statuses, and the package stats report `citationReturnRate`, the share of cited URLs that a
+tool returned (1 means none were invented).
+

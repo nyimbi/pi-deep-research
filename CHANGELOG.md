@@ -7,6 +7,7 @@ description: "Changelog for pi-deep-research skill"
 ## [Unreleased]
 
 ### Added
+- Typed ledger URL statuses (`payment_required`, `robots_blocked`, `archived`, `duplicate`); the first two are never refetched. Stats report `citationReturnRate`.
 - Deterministic claim checks in `research_finalize`: cited numbers and quotes must appear in the archived source.
 - URL provenance gate: `web_extract` refuses URLs the user did not type and no tool returned.
 - `research_finalize` runs the vendored docs-qa gate over the report and fails on errors.

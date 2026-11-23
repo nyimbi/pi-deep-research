@@ -1,6 +1,6 @@
 import type { SourceLedger } from "./ledger.ts";
 import { mergeResults, normalizeUrl } from "./normalize.ts";
-import type { JsonCache, ProviderBreaker, UrlPolicy } from "./runtime.ts";
+import { HttpStatusError, type JsonCache, type ProviderBreaker, type UrlPolicy } from "./runtime.ts";
 import { assertFetchableUrlResolved } from "./runtime.ts";
 import { applyDomainFilter, extractWithFetch } from "./shared.ts";
 import type { Attempt, ExtractResult, SearchProvider, SearchRequest, SearchResult } from "./types.ts";
@@ -251,7 +251,13 @@ export async function chainExtract(
 		}
 	}
 
-	const result = await extractWithFetch(url, opts.fetchImpl, { policy: opts.safety });
+	let result: ExtractResult;
+	try {
+		result = await extractWithFetch(url, opts.fetchImpl, { policy: opts.safety });
+	} catch (error) {
+		if (error instanceof HttpStatusError && error.status === 402) opts.ledger?.recordUrlStatus(url, "payment_required", "HTTP 402");
+		throw error;
+	}
 	opts.ledger?.recordExtract(url, result);
 	if (cacheKey) await opts.cache!.set(cacheKey, result, opts.cacheTtlMs ?? 604_800_000);
 	return result;

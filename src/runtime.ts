@@ -138,6 +138,16 @@ export interface UrlPolicy {
 	allowedPorts: number[];
 }
 
+/** An HTTP failure with its status, so callers can record terminal outcomes instead of retrying. */
+export class HttpStatusError extends Error {
+	readonly status: number;
+	constructor(status: number, message: string) {
+		super(message);
+		this.name = "HttpStatusError";
+		this.status = status;
+	}
+}
+
 export class UnsafeUrlError extends Error {
 	constructor(message: string) {
 		super(message);
