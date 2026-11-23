@@ -177,3 +177,17 @@ Whether parallel workers beat a single agent on answer quality is not measured h
 gain the roadmap cites (Tongyi Heavy Mode) is unconfirmed for this pipeline. The cap of 8 follows
 the reported flattening past that point.
 
+## Unlimited-OCR on llama.cpp
+
+`unlimited_ocr.backend` (or `UOCR_BACKEND`) is `sglang` by default. `llama-cpp` sends the page images
+alone, because the GGUF's embedded chat template adds `<PAGE>` before each image and the trained
+instruction, and omits the SGLang-only fields (`images_config`, logit processor). A unit test pins
+that request shape.
+
+**Not verified end to end.** The GGUF download (Q6_K plus the mmproj, 3.3 GB) is complete, but both
+stock llama.cpp builds on this machine (Homebrew build 12359, Unsloth build 12631) refuse it with
+`unknown model architecture: 'unlimited-ocr2'`. The model card says the files need llama.cpp build
+b11913 plus a community patch from a third-party repository. That patch is unreviewed code, so it was
+not built or run here. Until someone does, treat the `llama-cpp` backend and the layout headers its
+output may carry as untested.
+

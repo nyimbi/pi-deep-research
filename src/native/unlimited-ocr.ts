@@ -59,7 +59,8 @@ function imageMime(contentType: string): string | null {
 
 /**
  * Local OCR for PDFs and images via Baidu's Unlimited-OCR served over an
- * OpenAI-compatible chat endpoint (SGLang build from the model card).
+ * OpenAI-compatible chat endpoint: the SGLang build from the model card, or a llama.cpp server
+ * carrying the Unlimited-OCR-2 patch (`backend: "llama-cpp"`).
  * Extraction only. Throws on HTML so the chain falls through to the next
  * extractor; place it before the generic fetch fallback in the provider list.
  */
@@ -69,16 +70,17 @@ export function createUnlimitedOcrProvider(settings: UocrSettings, deps: UocrDep
 
 	async function parse(pages: Buffer[], mime: string, signal?: AbortSignal): Promise<string> {
 		const content: unknown[] = pages.map((page) => ({ type: "image_url", image_url: { url: dataUrl(page, mime) } }));
-		content.push({ type: "text", text: "<PAGE><image>".repeat(pages.length) + "Multi page parsing." });
+		// llama.cpp's embedded chat template adds <PAGE> before each image and the trained instruction when
+		// the message has no text, so that backend gets images only and none of the SGLang-specific fields.
+		if (settings.backend === "sglang") content.push({ type: "text", text: "<PAGE><image>".repeat(pages.length) + "Multi page parsing." });
 		const body: Record<string, unknown> = {
 			model: settings.model,
 			messages: [{ role: "user", content }],
 			max_tokens: settings.tokensPerPage * pages.length,
 			temperature: 0,
-			skip_special_tokens: false,
-			images_config: { crop_mode: settings.cropMode },
+			...(settings.backend === "sglang" ? { skip_special_tokens: false, images_config: { crop_mode: settings.cropMode } } : {}),
 		};
-		if (settings.logitProcessor) {
+		if (settings.backend === "sglang" && settings.logitProcessor) {
 			body.custom_logit_processor = settings.logitProcessor;
 			body.custom_params = {
 				ngram_size: settings.ngramSize,

@@ -69,6 +69,21 @@ describe("unlimited-ocr", () => {
 		assert.equal(result.provider, "unlimited-ocr");
 	});
 
+	it("the llama-cpp backend sends images only, with no SGLang-specific fields", async () => {
+		bodies.length = 0;
+		const provider = createUnlimitedOcrProvider(settings({ backend: "llama-cpp", logitProcessor: "LP" }), {
+			capture: async () => capture("a.pdf", "application/pdf"),
+			renderPages: pages(2),
+		});
+		await provider.extract!("https://e.example/a.pdf");
+		const body = bodies[0];
+		const parts = body.messages[0].content;
+		assert.equal(parts.length, 2);
+		assert.ok(parts.every((p: any) => p.type === "image_url"), "no text part: the chat template adds the instruction");
+		for (const key of ["skip_special_tokens", "images_config", "custom_logit_processor", "custom_params"]) assert.ok(!(key in body), key);
+		assert.equal(body.temperature, 0);
+	});
+
 	it("omits logit-processor fields when none is configured", async () => {
 		bodies.length = 0;
 		const provider = createUnlimitedOcrProvider(settings(), {

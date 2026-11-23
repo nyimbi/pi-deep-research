@@ -96,6 +96,8 @@ export interface WorkerSettings {
 }
 
 export interface UocrSettings {
+	/** `sglang` (model card build) or `llama-cpp` (patched llama-server serving the GGUF; images only). */
+	backend: "sglang" | "llama-cpp";
 	/** Base URL of the SGLang server; empty disables the provider. */
 	baseUrl: string;
 	model: string;
@@ -180,6 +182,7 @@ export const DEFAULT_SETTINGS: ResearchSettings = {
 	docling: { enabled: false, command: "docling", device: "cpu", vlmModel: "", ocr: true, timeoutMs: 300_000 },
 	local: { enabled: true, minWords: 80, minCharsPerPage: 200, pdftotext: "pdftotext", maxPages: 200 },
 	uocr: {
+		backend: "sglang",
 		baseUrl: "",
 		model: "Unlimited-OCR-2",
 		apiKey: "",
@@ -372,6 +375,11 @@ export async function loadSettings(options: LoadSettingsOptions = {}): Promise<R
 			maxPages: number(localRaw.max_pages, DEFAULT_SETTINGS.local.maxPages, "local_extract.max_pages"),
 		},
 		uocr: {
+			backend: ((): "sglang" | "llama-cpp" => {
+				const value = (env.UOCR_BACKEND ?? text(uocrRaw.backend, DEFAULT_SETTINGS.uocr.backend, "unlimited_ocr.backend")).trim();
+				if (value !== "sglang" && value !== "llama-cpp") throw new Error(`unlimited_ocr.backend must be "sglang" or "llama-cpp", got "${value}"`);
+				return value;
+			})(),
 			baseUrl: (env.UOCR_BASE_URL ?? text(uocrRaw.base_url, DEFAULT_SETTINGS.uocr.baseUrl, "unlimited_ocr.base_url")).trim().replace(/\/+$/, ""),
 			model: text(uocrRaw.model, DEFAULT_SETTINGS.uocr.model, "unlimited_ocr.model"),
 			apiKey: env.UOCR_API_KEY ?? text(uocrRaw.api_key, DEFAULT_SETTINGS.uocr.apiKey, "unlimited_ocr.api_key"),
