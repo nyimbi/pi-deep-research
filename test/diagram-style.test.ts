@@ -66,7 +66,13 @@ describe("editorialSvg", () => {
 			["flowchart LR\n a -->|x| b\n b -->|y| c\n c -->|z| d\n linkStyle 0,1,2 stroke:#d33", /more than 2 accent/],
 			["flowchart LR\n A --> B\n B --> B", /to itself/],
 			["stateDiagram-v2\n state X {\n a --> b\n }", /not a diagram/],
-			["sequenceDiagram\n A->>B: hi\n alt ok\n B-->>A: yes\n end", /does not read/],
+			["sequenceDiagram\n A->>B: hi\n par ok\n B-->>A: yes\n end", /does not read/],
+			["sequenceDiagram\n A->>B: hi\n alt a\n loop b\n B-->>A: yes\n end\n end", /inside a fragment/],
+			["sequenceDiagram\n A->>B: hi\n alt a\n else b\n B-->>A: yes\n end", /empty/],
+			["sequenceDiagram\n A->>B: hi\n opt a\n B-->>A: yes", /never closed/],
+			["sequenceDiagram\n opt a\n A->>B: 1\n end\n opt b\n A->>B: 2\n end\n opt c\n A->>B: 3\n end", /fragments than the skill allows/],
+			["sequenceDiagram\n alt a\n A->>B: 1\n end\n opt b\n A->>B: 2\n end", /fragments than the skill allows/],
+			["sequenceDiagram\n alt a\n A->>B: 1\n else b\n A->>B: 2\n else c\n A->>B: 3\n end", /more than two regions/],
 			["sequenceDiagram\n A->>A: think", /itself/],
 			["sequenceDiagram\n A->>B: x\n B->>C: x\n C->>D: x\n D->>E: x\n E->>F: x", /5 lifelines/],
 			["flowchart LR\n A -->|this label is too long| B", /14 characters/],
@@ -144,6 +150,29 @@ describe("editorialSvg", () => {
 		for (const [i, y] of masks.entries()) assert.ok(lines[i] - (y + 14) >= 6 && lines[i] - (y + 14) <= 10);
 		assert.match(out.svg, />200 OK</);
 	});
+	it("draws alt, opt and loop as frames spanning only the lifelines that speak inside them", () => {
+		const head = "sequenceDiagram\n participant C as Client\n participant A as API\n participant I as Identity\n";
+		const frameRects = (svg: string) => [...svg.matchAll(/<rect x="([\d.]+)" y="([\d.]+)" width="([\d.]+)" height="([\d.]+)" rx="4" fill="#2d3142" fill-opacity="0.02"/g)].map((m) => m.slice(1).map(Number));
+		const lifelines = (svg: string) => [...svg.matchAll(/<line x1="([\d.]+)" y1="\d+" x2="\1" y2="\d+" stroke="#4f5d75" stroke-opacity="0.5"/g)].map((m) => Number(m[1]));
+		const alt = editorialSvg(head + " C->>A: GET /report\n alt token valid\n A-->>C: 200 OK\n else token expired\n A->>I: refresh\n I-->>A: new token\n end\n C-)A: ack", opts())!;
+		assert.ok(alt, styleRefusal() ?? "");
+		assert.deepEqual([...alt.svg.matchAll(/letter-spacing="0.12em">(ALT|OPT|LOOP)</g)].map((m) => m[1]), ["ALT"]);
+		assert.match(alt.svg, /\[token valid\]/);
+		assert.match(alt.svg, /\[token expired\]/);
+		assert.equal((alt.svg.match(/stroke-dasharray="4,3"/g) ?? []).length, 1, "one alt divider");
+		assert.equal(frameRects(alt.svg).length, 1);
+		const [fa] = frameRects(alt.svg);
+		const maskYs = [...alt.svg.matchAll(/<rect x="[\d.]+" y="([\d.]+)" width="[\d.]+" height="14" rx="2" fill="#f5f5f5"/g)].map((m) => Number(m[1]));
+		assert.ok(maskYs[maskYs.length - 1] >= fa[1] + fa[3] + 4, "the message after the frame starts clear below it");
+		const two = editorialSvg(head + " loop each page\n C->>A: next\n A-->>C: page\n end\n opt more\n C-)I: notify\n end", opts())!;
+		assert.ok(two, styleRefusal() ?? "");
+		assert.deepEqual([...two.svg.matchAll(/letter-spacing="0.12em">(ALT|OPT|LOOP)</g)].map((m) => m[1]), ["LOOP", "OPT"]);
+		const [loop, opt] = frameRects(two.svg);
+		const [, , idLife] = lifelines(two.svg);
+		assert.ok(loop[0] + loop[2] < idLife, "the loop uses Client and API only, so it stops short of Identity");
+		assert.ok(opt[0] + opt[2] > idLife, "the opt reaches Identity");
+		assert.ok(loop[1] + loop[3] + 12 <= opt[1], "frames are clear of one another");
+	});
 	it("reads an arrow written without spaces", () => {
 		assert.ok(editorialSvg("sequenceDiagram\n A->>B: hi\n B-->>A: yo", opts()));
 		assert.ok(editorialSvg("flowchart LR\n A-->B", opts()));
@@ -184,6 +213,8 @@ describe("the diagram-design skill's own checks on every drawn type", { skip: !e
 		"a state diagram with a loop": "stateDiagram-v2\n  [*] --> Idle\n  Idle --> Running: start\n  Running --> Idle: stop\n  Running --> Failed: error\n  Failed --> [*]",
 		"a left-to-right state diagram": "stateDiagram-v2\n  direction LR\n  [*] --> Idle\n  Idle --> Running: start\n  Running --> Idle: stop\n  Running --> [*]",
 		"a flowchart cycle": "flowchart LR\n A[Plan] -->|go| B[Act]\n B -->|check| C[Review]\n C -->|retry| A",
+		"a sequence diagram with an alt": "sequenceDiagram\n participant C as Client\n participant A as API\n participant I as Identity\n C->>A: GET /report\n alt token valid\n A-->>C: 200 OK\n else token expired\n A->>I: refresh\n I-->>A: new token\n end\n C-)A: ack",
+		"a sequence diagram with a loop then an opt": "sequenceDiagram\n participant C as Client\n participant A as API\n participant I as Identity\n loop each page\n C->>A: next\n A-->>C: page\n end\n opt more\n C-)I: notify\n end",
 		"a sequence diagram": "sequenceDiagram\n participant C as Client\n participant A as API\n participant D as Database\n C->>A: GET /report\n A->>D: query\n D-->>A: rows\n A-->>C: 200 OK\n C-)A: ack",
 	};
 	for (const [name, src] of Object.entries(samples)) {

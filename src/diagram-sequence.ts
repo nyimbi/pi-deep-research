@@ -15,12 +15,17 @@ const ARROWS = { "->>": "call", "-->>": "return", "-)": "async", "--)": "async" 
 
 interface Part { id: string; label: string; x: number; w: number }
 interface Msg { from: string; to: string; label: string; kind: "call" | "return" | "async" }
+type Event = { t: "msg"; m: Msg } | { t: "open"; op: "alt" | "opt" | "loop"; guard: string } | { t: "else"; guard: string } | { t: "end" };
+interface Frame { op: string; guards: string[]; top: number; bottom: number; divs: number[]; people: Set<string>; regions: number }
 
 export function drawSequence(source: string, skin: Skin, ids: { slug: string; title: string; desc: string }): { svg: string; width: number; height: number } | string {
 	const lines = source.split("\n").map((l) => l.trim()).filter((l) => l && !l.startsWith("%%"));
 	if (!/^sequenceDiagram$/.test(lines[0] ?? "")) return "not a sequence diagram";
 	const parts = new Map<string, Part>();
 	const msgs: Msg[] = [];
+	const events: Event[] = [];
+	let openOp: string | null = null;
+	let regionHasMsg = false;
 	const add = (id: string, label?: string) => {
 		if (!parts.has(id)) parts.set(id, { id, label: label ?? id, x: 0, w: 0 });
 		else if (label) parts.get(id)!.label = label;
@@ -31,13 +36,44 @@ export function drawSequence(source: string, skin: Skin, ids: { slug: string; ti
 			add(decl[1], decl[2]?.trim());
 			continue;
 		}
+		const fr = /^(alt|opt|loop)(?:\s+(.*))?$/.exec(line);
+		if (fr) {
+			if (openOp) return "a fragment inside a fragment";
+			openOp = fr[1];
+			regionHasMsg = false;
+			events.push({ t: "open", op: fr[1] as "alt" | "opt" | "loop", guard: (fr[2] ?? "").trim() });
+			continue;
+		}
+		const el = /^else(?:\s+(.*))?$/.exec(line);
+		if (el) {
+			if (openOp !== "alt") return "else outside an alt";
+			if (!regionHasMsg) return "an empty fragment region";
+			regionHasMsg = false;
+			events.push({ t: "else", guard: (el[1] ?? "").trim() });
+			continue;
+		}
+		if (line === "end") {
+			if (!openOp) return "end without a fragment";
+			if (!regionHasMsg) return "an empty fragment region";
+			openOp = null;
+			events.push({ t: "end" });
+			continue;
+		}
 		const m = /^([A-Za-z_]\w*)\s*(->>|-->>|--\)|-\))\s*([A-Za-z_]\w*)\s*:\s*(.+)$/.exec(line);
 		if (!m) return `a line this drawer does not read (${line.split(/\s+/)[0]})`;
 		if (m[1] === m[3]) return "a message from a participant to itself";
 		add(m[1]);
 		add(m[3]);
-		msgs.push({ from: m[1], to: m[3], label: m[4].trim(), kind: ARROWS[m[2] as keyof typeof ARROWS] });
+		const msg: Msg = { from: m[1], to: m[3], label: m[4].trim(), kind: ARROWS[m[2] as keyof typeof ARROWS] };
+		msgs.push(msg);
+		events.push({ t: "msg", m: msg });
+		if (openOp) regionHasMsg = true;
 	}
+	if (openOp) return "a fragment that is never closed";
+	const opens = events.filter((e): e is Extract<Event, { t: "open" }> => e.t === "open");
+	const elses = events.filter((e) => e.t === "else").length;
+	if (opens.length > 2 || (opens.length === 2 && (elses > 0 || opens.some((o) => o.op === "alt")))) return "more fragments than the skill allows (one, or two single-region opt or loop)";
+	if (elses > 1) return "an alt with more than two regions";
 	if (!msgs.length) return "no messages";
 	const list = [...parts.values()];
 	if (list.length > 5) return "more than 5 lifelines";
@@ -66,8 +102,43 @@ export function drawSequence(source: string, skin: Skin, ids: { slug: string; ti
 	const HEAD_Y = 32;
 	const HEAD_H = 48;
 	const first = HEAD_Y + HEAD_H + 40;
-	const ys = msgs.map((_, i) => first + i * 44);
-	const bottom = ys[ys.length - 1] + 40;
+	// Vertical layout. A fragment frame needs room for its tab and guard above the first message, a clear
+	// divider between alt regions, and clearance below before the next message.
+	const ys = new Map<Msg, number>();
+	const frames: Frame[] = [];
+	let prev = HEAD_Y + HEAD_H - 4;
+	let minY = first;
+	let cur: Frame | null = null;
+	let lastY = prev;
+	for (const e of events) {
+		if (e.t === "open") {
+			cur = { op: e.op.toUpperCase(), guards: [e.guard], top: Math.max(prev + 20, (frames[frames.length - 1]?.bottom ?? 0) + 16), bottom: 0, divs: [], people: new Set(), regions: 1 };
+			frames.push(cur);
+			minY = Math.max(minY, cur.top + 60);
+		} else if (e.t === "else") {
+			cur!.divs.push(lastY + 24);
+			cur!.guards.push(e.guard || "else");
+			cur!.regions++;
+			minY = cur!.divs[cur!.divs.length - 1] + 46;
+		} else if (e.t === "end") {
+			cur!.bottom = lastY + 16;
+			minY = cur!.bottom + 36;
+			cur = null;
+		} else {
+			const y = Math.max(prev + 44, minY);
+			ys.set(e.m, y);
+			prev = y;
+			lastY = y;
+			cur?.people.add(e.m.from);
+			cur?.people.add(e.m.to);
+		}
+	}
+	const bottom = lastY + 40;
+	for (const f of frames) {
+		const xs = [...f.people].map((id) => parts.get(id)!.x);
+		const w = Math.max(...xs) + 24 - (Math.min(...xs) - 24);
+		for (const g of f.guards) if (g && (g.length + 2) * 4.8 + 24 > w) return "a fragment guard too wide for its frame";
+	}
 	const kinds = new Set(msgs.map((x) => x.kind));
 	const legend = kinds.size > 1;
 	const height = snap(bottom + (legend ? 60 : 0));
@@ -82,12 +153,25 @@ export function drawSequence(source: string, skin: Skin, ids: { slug: string; ti
 	out.push(`<defs><marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="${skin.muted}"/></marker><marker id="arrow-open" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polyline points="0 0, 8 3, 0 6" fill="none" stroke="${skin.muted}" stroke-width="1.2"/></marker></defs>`);
 	out.push(`<rect width="100%" height="100%" fill="${skin.paper}"/>`);
 	if (dx) out.push(`<g transform="translate(${dx} 0)">`);
+	for (const f of frames) {
+		const xs = [...f.people].map((id) => parts.get(id)!.x);
+		const x0 = Math.min(...xs) - 24;
+		const w = Math.max(...xs) + 24 - x0;
+		const tabW = Math.max(40, f.op.length * 7 + 20);
+		out.push(`<rect x="${x0}" y="${f.top}" width="${w}" height="${f.bottom - f.top}" rx="4" fill="${skin.ink}" fill-opacity="0.02" stroke="${skin.ink}" stroke-opacity="0.22" stroke-width="1"/>`);
+		out.push(`<rect x="${x0}" y="${f.top}" width="${tabW}" height="16" rx="2" fill="${skin.paper}" stroke="${skin.ink}" stroke-opacity="0.22" stroke-width="1"/><text x="${x0 + tabW / 2}" y="${f.top + 11}" fill="${skin.muted}" font-size="8" font-family="${MONO}" text-anchor="middle" letter-spacing="0.12em">${f.op}</text>`);
+		f.guards.forEach((g, i) => {
+			const gy = i === 0 ? f.top + 30 : f.divs[i - 1] + 16;
+			if (i > 0) out.push(`<line x1="${x0 + 8}" y1="${f.divs[i - 1]}" x2="${x0 + w - 8}" y2="${f.divs[i - 1]}" stroke="${skin.ink}" stroke-opacity="0.2" stroke-width="1" stroke-dasharray="4,3"/>`);
+			if (g) out.push(`<text x="${x0 + 12}" y="${gy}" fill="${skin.muted}" font-size="8" font-family="${MONO}" letter-spacing="0.04em">[${esc(g)}]</text>`);
+		});
+	}
 	for (const p of list) out.push(`<line x1="${p.x}" y1="${HEAD_Y + HEAD_H}" x2="${p.x}" y2="${bottom}" stroke="${skin.muted}" stroke-opacity="0.5" stroke-width="1" stroke-dasharray="4,4"/>`);
 	const masks: string[] = [];
-	msgs.forEach((x, i) => {
+	msgs.forEach((x) => {
 		const a = parts.get(x.from)!.x;
 		const b = parts.get(x.to)!.x;
-		const y = ys[i];
+		const y = ys.get(x)!;
 		const sign = b > a ? 1 : -1;
 		out.push(`<line x1="${a}" y1="${y}" x2="${b}" y2="${y}" stroke="${skin.muted}" stroke-width="1.2"${dash(x.kind)} marker-end="url(#${marker(x.kind)})"/>`);
 		const w = Math.ceil(x.label.length * 5.4 + 8);

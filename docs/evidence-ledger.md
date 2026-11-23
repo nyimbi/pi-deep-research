@@ -110,8 +110,10 @@ It draws three Mermaid types, and what it can draw correctly of each:
 - **State diagrams** (`stateDiagram` or `stateDiagram-v2`, optional `direction LR`): states, `[*]` start and end
   markers, labelled transitions and loops. Composite states, forks, choices, notes and descriptions are refused.
 - **Sequence diagrams**: up to 5 participants and 12 messages. `->>` is a call (solid), `-->>` a return (dashed,
-  filled head), `-)` and `--)` async (dashed, open head). Fragments (`alt`, `loop`, `opt`), notes, activations
-  and self-messages are refused.
+  filled head), `-)` and `--)` async (dashed, open head). `alt` (two regions at most, with a dashed divider),
+  `opt` and `loop` are drawn as frames over only the lifelines that speak inside them, with the guard under the
+  tab. The skill's limits apply: one fragment, or two if both are single-region `opt` or `loop`, and no nesting.
+  `par`, `critical`, `break`, `ref`, notes, activations and self-messages are refused.
 
 Common limits: up to 9 nodes and 12 arrows, flowchart and state labels of 14 characters or fewer (28 in a sequence
 diagram), and a route for every arrow that avoids every other box. Anything else is drawn by Mermaid, themed with the

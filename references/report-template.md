@@ -191,7 +191,7 @@ plus a detail. Lint warns at those limits. Pick the Mermaid type by what you are
 | What an experience feels like across stages | `journey` |
 
 A `flowchart` (one level of subgraphs, cycles allowed), a `stateDiagram-v2` or a `sequenceDiagram` with no
-decisions, fragments or composite states, arrow labels of 14 characters or fewer (28 in a sequence) and nine nodes
+decisions, nested or `par` fragments or composite states, arrow labels of 14 characters or fewer (28 in a sequence) and nine nodes
 or fewer is drawn in the report's editorial style; anything else is drawn by Mermaid and finalize says
 why. Short labels cost nothing, so prefer them.
 
